@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#7cc7ff" />
+  <title>제리츄 뽑기판</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">JERRYCHU LUCKY DRAW</div>
+        <h1 id="displayTitle">제리츄 뽑기판</h1>
+        <p id="displaySubtitle">오늘의 행운을 뽑아보세요!</p>
+        <div class="hero-stats">
+          <div class="stat-card"><span>남은 뽑기</span><strong><b id="remainingCount">0</b> / <b id="totalCount">0</b></strong></div>
+          <div class="stat-card"><span>당첨 남음</span><strong id="winningRemaining">0</strong></div>
+          <div class="stat-card"><span>진행률</span><strong id="progressText">0%</strong></div>
+        </div>
+      </div>
+      <div class="mascot-wrap" aria-label="캐릭터 마스코트">
+        <div class="mascot-glow"></div>
+        <div class="mascot-card">
+          <img src="assets/mascot-character.png" alt="제리츄 뽑기판 마스코트 캐릭터" class="mascot-image" />
+          <div class="mascot-badge">JERRYCHU PICK</div>
+        </div>
+        <div class="floating-chip chip-a">★</div><div class="floating-chip chip-b">LUCKY</div><div class="floating-chip chip-c">PICK</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="control-row glass-card">
+        <div class="participant-field">
+          <label for="participantName">이번 뽑기 주인공</label>
+          <input id="participantName" type="text" maxlength="24" placeholder="대기열이 없을 때 직접 입력" />
+        </div>
+        <div class="sync-compact">
+          <span id="syncStatusDot" class="status-dot off"></span>
+          <div><small>SOOP 연동</small><strong id="syncStatusText">사용 안 함</strong></div>
+          <button id="syncNowBtn" class="icon-sync" title="지금 동기화">↻</button>
+        </div>
+        <div class="control-actions">
+          <button id="settingsBtn" class="btn secondary">⚙ 관리 설정</button>
+          <button id="previewBtn" class="btn secondary">👀 결과 미리보기</button>
+          <button id="resetProgressBtn" class="btn danger-outline">↺ 진행 초기화</button>
+        </div>
+      </section>
+
+      <section class="queue-panel glass-card">
+        <div class="queue-current">
+          <div class="section-heading compact">
+            <div><span class="mini-label">CURRENT PLAYER</span><h2>현재 뽑기 대상</h2></div>
+            <button id="manualQueueBtn" class="btn secondary small">＋ 수동 추가</button>
+          </div>
+          <div id="currentTargetCard" class="current-target-card empty-target">
+            <div class="target-avatar"><img src="assets/mascot-character.png" alt="캐릭터" /></div>
+            <div class="target-info"><span>대기 중</span><strong>등록된 뽑기 대상이 없습니다.</strong><small>직접 이름을 입력하거나 SOOP 연동으로 불러오세요.</small></div>
+          </div>
+          <div id="currentTargetActions" class="target-actions hidden">
+            <button id="targetMinusBtn" class="mini-action">− 1회</button>
+            <button id="targetPlusBtn" class="mini-action">＋ 1회</button>
+            <button id="targetSkipBtn" class="mini-action">뒤로 보내기</button>
+            <button id="targetRemoveBtn" class="mini-action danger">삭제</button>
+          </div>
+        </div>
+        <div class="queue-list-box">
+          <div class="section-heading compact"><div><span class="mini-label">WAITING QUEUE</span><h3>뽑기 대기열</h3></div><span id="queueCountBadge" class="queue-count">0명</span></div>
+          <div id="drawQueueList" class="draw-queue-list"><div class="empty-state">대기 중인 후원이 없습니다.</div></div>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <aside class="prize-panel glass-card">
+          <div class="section-heading"><div><span class="mini-label">PRIZE LIST</span><h2>당첨 목록</h2></div><span class="mascot-mini-frame"><img src="assets/mascot-character.png" alt="마스코트 미리보기" /></span></div>
+          <div id="prizeList" class="prize-list"></div>
+          <div class="recent-box">
+            <div class="section-heading compact"><h3>최근 결과</h3><button id="clearHistoryBtn" class="text-btn">기록 지우기</button></div>
+            <div id="recentHistory" class="recent-history"><div class="empty-state">아직 뽑기 기록이 없어요.</div></div>
+          </div>
+        </aside>
+        <section class="board-area glass-card">
+          <div class="board-topline"><div><span class="mini-label">PICK A NUMBER</span><h2>번호를 골라주세요</h2></div><div class="progress-bar-wrap"><div class="progress-bar"><span id="progressBar"></span></div></div></div>
+          <div id="drawBoard" class="draw-board" aria-live="polite"></div>
+          <div id="boardEmpty" class="board-empty hidden"><div class="empty-char-wrap"><img src="assets/mascot-character.png" alt="캐릭터" class="empty-char" /></div><h3>뽑기판이 아직 만들어지지 않았어요.</h3><p>관리 설정에서 당첨 항목을 입력하고 뽑기판을 생성해 주세요.</p><button class="btn primary" id="emptySettingsBtn">뽑기판 만들기</button></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="confirmModal" class="modal-backdrop hidden"><div class="modal small-modal"><button class="modal-close" data-close="confirmModal">×</button><div class="confirm-number" id="confirmNumber">001</div><h2>이 번호를 뽑을까요?</h2><p id="confirmParticipant">주인공: 이름 없음</p><div class="modal-actions"><button class="btn secondary" data-close="confirmModal">취소</button><button id="confirmDrawBtn" class="btn primary">뽑기!</button></div></div></div>
+
+  <div id="resultModal" class="modal-backdrop hidden"><div id="resultModalCard" class="modal result-modal"><button class="modal-close" data-close="resultModal">×</button><div class="result-character-wrap"><img src="assets/mascot-character.png" alt="결과 캐릭터" class="result-character" /></div><div id="resultEmoji" class="result-emoji">🎉</div><div id="resultRank" class="result-rank">1등</div><h2 id="resultPrize">당첨!</h2><p id="resultMessage">축하합니다!</p><div id="resultMeta" class="result-meta"></div><button class="btn primary wide" data-close="resultModal">확인</button></div></div>
+
+  <div id="manualQueueModal" class="modal-backdrop hidden"><div class="modal small-modal"><button class="modal-close" data-close="manualQueueModal">×</button><span class="mini-label">MANUAL QUEUE</span><h2>뽑기 대상 수동 추가</h2><div class="manual-form"><label><span>닉네임</span><input id="manualNickname" type="text" maxlength="24" placeholder="닉네임"></label><label><span>뽑기 횟수</span><input id="manualDraws" type="number" min="1" max="999" value="1"></label><label><span>메모</span><input id="manualMemo" type="text" maxlength="40" placeholder="선택 사항"></label></div><button id="manualQueueAddBtn" class="btn primary wide">대기열에 추가</button></div></div>
+
+  <div id="settingsModal" class="modal-backdrop hidden">
+    <div class="modal settings-modal">
+      <button class="modal-close" data-close="settingsModal">×</button>
+      <div class="modal-header"><div><span class="mini-label">ADMIN SETTINGS</span><h2>제리츄 뽑기판 설정</h2></div><span class="settings-preview"><img src="assets/mascot-character.png" alt="캐릭터 미리보기" /></span></div>
+      <div class="settings-tabs"><button class="settings-tab active" data-tab="boardSettings">뽑기판</button><button class="settings-tab" data-tab="soopSettings">SOOP 연동</button></div>
+      <div class="settings-scroll">
+        <div id="boardSettings" class="settings-tab-panel">
+          <section class="settings-section"><h3>기본 설정</h3><div class="form-grid">
+            <label><span>사이트 제목</span><input id="settingTitle" type="text" value="제리츄 뽑기판" /></label>
+            <label><span>안내 문구</span><input id="settingSubtitle" type="text" value="오늘의 행운을 뽑아보세요!" /></label>
+            <label><span>전체 칸 수</span><input id="settingTotal" type="number" min="1" max="300" value="100" /></label>
+            <label><span>가로 칸 수</span><input id="settingColumns" type="number" min="2" max="20" value="10" /></label>
+            <label class="full-width"><span>꽝 표시 문구</span><input id="settingLoseText" type="text" maxlength="30" value="아쉽습니다!" /></label>
+          </div></section>
+          <section class="settings-section"><div class="section-heading compact"><div><h3>당첨 항목</h3><p class="helper">1등부터 원하는 만큼 추가할 수 있습니다.</p></div><button id="addPrizeBtn" class="btn secondary small">＋ 등수 추가</button></div><div id="prizeEditor" class="prize-editor"></div></section>
+          <section class="settings-section summary-section"><div class="summary-box"><span>전체 칸</span><strong id="summaryTotal">100</strong></div><div class="summary-box"><span>당첨 칸</span><strong id="summaryWin">0</strong></div><div class="summary-box"><span>꽝 칸</span><strong id="summaryLose">100</strong></div><div id="settingError" class="setting-error hidden"></div></section>
+        </div>
+
+        <div id="soopSettings" class="settings-tab-panel hidden">
+          <section class="settings-section">
+            <div class="toggle-heading"><div><h3>SOOP 후원 자동 연동</h3><p class="helper">확장프로그램이 보낸 후원 내역을 Apps Script에서 가져옵니다.</p></div><label class="switch"><input id="soopEnabled" type="checkbox"><span></span></label></div>
+            <div class="form-grid integration-fields">
+              <label class="full-width"><span>Apps Script Web App 주소 (/exec)</span><input id="soopExecUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
+              <label><span>연동 토큰</span><input id="soopToken" type="password" placeholder="SOOP_COLLECTOR_TOKEN"></label>
+              <label><span>확인 주기</span><select id="soopPollSeconds"><option value="3">3초</option><option value="5">5초</option><option value="10">10초</option><option value="30">30초</option></select></label>
+              <label><span>스트리머 SOOP ID 필터</span><input id="soopBjId" type="text" placeholder="비워두면 전체"></label>
+              <label><span>1회 최대 자동 지급</span><input id="soopMaxDraws" type="number" min="1" max="999" value="100"></label>
+            </div>
+            <div class="kind-checks"><label><input id="kindBalloon" type="checkbox" checked> 일반 후원</label><label><input id="kindChallenge" type="checkbox" checked> 도전미션</label><label><input id="kindBattle" type="checkbox" checked> 배틀미션</label></div>
+            <div class="connection-actions"><button id="testConnectionBtn" class="btn secondary small">연결 테스트</button><span id="connectionTestResult" class="connection-result">아직 테스트하지 않았습니다.</span></div>
+          </section>
+
+          <section class="settings-section">
+            <h3>뽑기 횟수 지급 방식</h3>
+            <div class="rule-mode-buttons"><label><input type="radio" name="ruleMode" value="ratio" checked><span>개수 비례</span></label><label><input type="radio" name="ruleMode" value="range"><span>구간별 지급</span></label><label><input type="radio" name="ruleMode" value="exact"><span>정확한 개수</span></label></div>
+            <div id="ratioRulePanel" class="rule-panel"><div class="inline-rule">별풍선 <input id="ratioBalloons" type="number" min="1" value="500">개당 뽑기 <input id="ratioDraws" type="number" min="1" value="1">회</div><p class="helper">나머지는 버림 처리합니다. 예: 1,200개, 500개당 1회 → 2회</p></div>
+            <div id="rangeRulePanel" class="rule-panel hidden"><div id="rangeRuleEditor" class="rule-editor"></div><button id="addRangeRuleBtn" class="btn secondary small">＋ 구간 추가</button></div>
+            <div id="exactRulePanel" class="rule-panel hidden"><div id="exactRuleEditor" class="rule-editor"></div><button id="addExactRuleBtn" class="btn secondary small">＋ 개수 추가</button><p class="helper">등록되지 않은 후원 개수는 0회로 처리합니다.</p></div>
+          </section>
+
+          <section class="settings-section test-calculator"><h3>지급 횟수 계산 테스트</h3><div class="test-row"><input id="testBalloonCount" type="number" min="0" value="1000"><span>개 후원 →</span><strong id="testDrawResult">2회</strong><button id="testAddQueueBtn" class="btn secondary small">테스트 대기열 추가</button></div></section>
+        </div>
+      </div>
+      <div class="modal-actions sticky-actions"><button class="btn secondary" data-close="settingsModal">닫기</button><button id="saveSettingsBtn" class="btn secondary">설정만 저장</button><button id="generateBoardBtn" class="btn primary">새 뽑기판 생성</button></div>
+    </div>
+  </div>
+
+  <div id="previewModal" class="modal-backdrop hidden"><div class="modal preview-modal"><button class="modal-close" data-close="previewModal">×</button><div class="modal-header"><div><span class="mini-label">ADMIN PREVIEW</span><h2>전체 결과 미리보기</h2></div><button id="exportCsvBtn" class="btn secondary small">CSV 내보내기</button></div><p class="helper">이 화면은 방송에 노출되지 않도록 주의해 주세요.</p><div id="previewGrid" class="preview-grid"></div></div></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
