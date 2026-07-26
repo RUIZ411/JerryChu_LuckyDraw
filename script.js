@@ -1,4 +1,14 @@
 const STORAGE_KEY = "jerrychuDrawBoardGithubV3";
+const PAGE_PARAMS = new URLSearchParams(location.search);
+const IS_BROADCAST_VIEW = PAGE_PARAMS.get("view") === "broadcast";
+const BROADCAST_CHUNK_SIZE = 20;
+let broadcastPollTimer = null;
+let broadcastPublishTimer = null;
+let broadcastPublishing = false;
+let broadcastMetaHash = "";
+let broadcastChunkHashes = [];
+let lastBroadcastResultId = "";
+let broadcastResultTimer = null;
 const defaultSettings = {
   title:"제리츄 뽑기판", subtitle:"오늘의 행운을 뽑아보세요!", total:100, columns:10, loseText:"아쉽습니다!",
   prizes:[{rank:"1등",prize:"최고 상품",count:1,color:"#72beff"},{rank:"2등",prize:"행운 상품",count:3,color:"#9f8fff"},{rank:"3등",prize:"소소한 상품",count:6,color:"#ff88bf"}],
@@ -6,24 +16,24 @@ const defaultSettings = {
 };
 let state=loadState(); let pendingIndex=null; let pollTimer=null; let syncing=false;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-function newState(){return{settings:structuredClone(defaultSettings),board:[],history:[],queue:[],importedEventIds:[],session:{active:false,startRow:1,startedAt:"",endedAt:"",sessionId:"",excludedCount:0,lastError:""}}}
-function normalizeState(saved){const base=newState();return{settings:{...base.settings,...(saved.settings||{}),integration:{...base.settings.integration,...(saved.settings?.integration||{}),kinds:{...base.settings.integration.kinds,...(saved.settings?.integration?.kinds||{})},ratio:{...base.settings.integration.ratio,...(saved.settings?.integration?.ratio||{})},ranges:saved.settings?.integration?.ranges||base.settings.integration.ranges,exacts:saved.settings?.integration?.exacts||base.settings.integration.exacts}},board:Array.isArray(saved.board)?saved.board:[],history:Array.isArray(saved.history)?saved.history:[],queue:Array.isArray(saved.queue)?saved.queue:[],importedEventIds:Array.isArray(saved.importedEventIds)?saved.importedEventIds:[],session:{...base.session,...(saved.session||{})}}}
+function newState(){return{settings:structuredClone(defaultSettings),board:[],history:[],queue:[],importedEventIds:[],session:{active:false,startRow:1,startedAt:"",endedAt:"",sessionId:"",excludedCount:0,lastError:""},broadcast:{key:"",bjId:""},lastResult:null}}
+function normalizeState(saved){const base=newState();return{settings:{...base.settings,...(saved.settings||{}),integration:{...base.settings.integration,...(saved.settings?.integration||{}),kinds:{...base.settings.integration.kinds,...(saved.settings?.integration?.kinds||{})},ratio:{...base.settings.integration.ratio,...(saved.settings?.integration?.ratio||{})},ranges:saved.settings?.integration?.ranges||base.settings.integration.ranges,exacts:saved.settings?.integration?.exacts||base.settings.integration.exacts}},board:Array.isArray(saved.board)?saved.board:[],history:Array.isArray(saved.history)?saved.history:[],queue:Array.isArray(saved.queue)?saved.queue:[],importedEventIds:Array.isArray(saved.importedEventIds)?saved.importedEventIds:[],session:{...base.session,...(saved.session||{})},broadcast:{...base.broadcast,...(saved.broadcast||{})},lastResult:saved.lastResult||null}}
 function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));return saved?normalizeState(saved):newState()}catch{return newState()}}
-function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+function saveState(){if(!IS_BROADCAST_VIEW)localStorage.setItem(STORAGE_KEY,JSON.stringify(state));if(!IS_BROADCAST_VIEW)scheduleBroadcastPublish()}
 function esc(v=""){return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
 function formatNumber(n){return String(n).padStart(Math.max(3,String(state.settings.total).length),"0")}
 function shuffle(a){const c=[...a];for(let i=c.length-1;i>0;i--){const j=crypto.getRandomValues(new Uint32Array(1))[0]%(i+1);[c[i],c[j]]=[c[j],c[i]]}return c}
 function currentTarget(){return state.queue.find(q=>q.remaining>0)||null}
 function buildBoard(){const s=state.settings,items=[];s.prizes.forEach((p,pi)=>{for(let i=0;i<Number(p.count);i++)items.push({type:"win",prizeIndex:pi,rank:p.rank,prize:p.prize,color:p.color,opened:false,openedAt:null,participant:""})});const loseCount=Math.max(0,Number(s.total)-items.length);for(let i=0;i<loseCount;i++)items.push({type:"lose",rank:"꽝",prize:s.loseText,color:"#9ba7b8",opened:false,openedAt:null,participant:""});state.board=shuffle(items);state.history=[];saveState();renderAll()}
-function renderAll(){renderHeader();renderPrizeList();renderBoard();renderHistory();renderQueue();renderSession();renderSyncStatus()}
+function renderAll(){renderHeader();renderPrizeList();renderBoard();renderHistory();renderQueue();renderSession();renderSyncStatus();renderBroadcastTopbar()}
 function renderHeader(){const total=state.board.length||Number(state.settings.total)||0,opened=state.board.filter(x=>x.opened).length,remaining=state.board.length?total-opened:0,wins=state.board.filter(x=>x.type==="win"&&!x.opened).length,progress=total?Math.round(opened/total*100):0;$("#displayTitle").textContent=state.settings.title;$("#displaySubtitle").textContent=state.settings.subtitle;$("#totalCount").textContent=total;$("#remainingCount").textContent=remaining;$("#winningRemaining").textContent=wins;$("#progressText").textContent=`${progress}%`;$("#progressBar").style.width=`${progress}%`;document.title=state.settings.title}
 function renderPrizeList(){const list=$("#prizeList");list.innerHTML="";state.settings.prizes.forEach((p,i)=>{const total=Number(p.count)||0,opened=state.board.filter(x=>x.opened&&x.type==="win"&&x.prizeIndex===i).length,remaining=state.board.length?Math.max(0,total-opened):total;const el=document.createElement("div");el.className="prize-item";el.innerHTML=`<div class="prize-rank" style="--rank-color:${esc(p.color)}">${esc(p.rank)}</div><div class="prize-info"><strong>${esc(p.prize)}</strong><span>총 ${total}개</span></div><div class="prize-count">${remaining}개</div>`;list.appendChild(el)});const wt=state.settings.prizes.reduce((a,p)=>a+(Number(p.count)||0),0),lt=Math.max(0,state.settings.total-wt),lo=state.board.filter(x=>x.opened&&x.type==="lose").length,lr=state.board.length?Math.max(0,lt-lo):lt;list.insertAdjacentHTML("beforeend",`<div class="prize-item lose-summary"><div class="prize-rank" style="--rank-color:#9ba7b8">꽝</div><div class="prize-info"><strong>${esc(state.settings.loseText)}</strong><span>나머지 칸 자동 배치</span></div><div class="prize-count">${lr}개</div></div>`)}
-function renderBoard(){const b=$("#drawBoard"),e=$("#boardEmpty");b.innerHTML="";if(!state.board.length){b.classList.add("hidden");e.classList.remove("hidden");return}b.classList.remove("hidden");e.classList.add("hidden");b.style.setProperty("--board-columns",state.settings.columns);state.board.forEach((item,i)=>{const btn=document.createElement("button");btn.className="draw-tile";if(item.opened){btn.classList.add("opened");btn.disabled=true;btn.style.setProperty("--tile-color",item.color||"#72beff");if(item.type==="lose")btn.classList.add("lose");btn.innerHTML=`<span class="tile-number">${item.type==="win"?`${esc(item.rank)}<br>${esc(item.prize)}`:esc(item.prize)}</span>`}else{btn.innerHTML=`<span class="tile-number">${formatNumber(i+1)}</span>`;btn.addEventListener("click",()=>openConfirm(i))}b.appendChild(btn)})}
+function renderBoard(){const b=$("#drawBoard"),e=$("#boardEmpty");b.innerHTML="";if(!state.board.length){b.classList.add("hidden");e.classList.remove("hidden");return}b.classList.remove("hidden");e.classList.add("hidden");b.style.setProperty("--board-columns",state.settings.columns);state.board.forEach((item,i)=>{const btn=document.createElement("button");btn.className="draw-tile";if(item.opened){btn.classList.add("opened");btn.disabled=true;btn.style.setProperty("--tile-color",item.color||"#72beff");if(item.type==="lose")btn.classList.add("lose");btn.innerHTML=`<span class="tile-number">${item.type==="win"?`${esc(item.rank)}<br>${esc(item.prize)}`:esc(item.prize)}</span>`}else{btn.innerHTML=`<span class="tile-number">${formatNumber(i+1)}</span>`;if(!IS_BROADCAST_VIEW)btn.addEventListener("click",()=>openConfirm(i));else btn.disabled=true}b.appendChild(btn)})}
 function renderHistory(){const h=$("#recentHistory");if(!state.history.length){h.innerHTML=`<div class="empty-state">아직 뽑기 기록이 없어요.</div>`;return}h.innerHTML=state.history.slice().reverse().slice(0,20).map(x=>`<div class="history-item"><strong>${esc(x.participant)} · ${esc(x.result)}</strong><span>${esc(x.number)}번 · ${esc(x.time)}</span></div>`).join("")}
 function renderQueue(){state.queue=state.queue.filter(q=>q.remaining>0);const cur=currentTarget(),card=$("#currentTargetCard"),actions=$("#currentTargetActions"),list=$("#drawQueueList");$("#queueCountBadge").textContent=`${state.queue.length}명`;if(cur){card.classList.remove("empty-target");card.innerHTML=`<div class="target-avatar"><img src="assets/mascot-character.png" alt="캐릭터"></div><div class="target-info"><span>${cur.source==="soop"?`별풍선 ${Number(cur.balloonCount||0).toLocaleString()}개`:"수동 등록"}</span><strong>${esc(cur.nickname)} · 남은 ${cur.remaining}회</strong><small>${esc(cur.memo||cur.kindLabel||"번호를 선택하면 자동으로 1회 차감됩니다.")}</small></div>`;actions.classList.remove("hidden");$("#participantName").value=cur.nickname}else{card.classList.add("empty-target");card.innerHTML=`<div class="target-avatar"><img src="assets/mascot-character.png" alt="캐릭터"></div><div class="target-info"><span>대기 중</span><strong>등록된 뽑기 대상이 없습니다.</strong><small>직접 이름을 입력하거나 SOOP 연동으로 불러오세요.</small></div>`;actions.classList.add("hidden")}
 if(!state.queue.length){list.innerHTML=`<div class="empty-state">대기 중인 후원이 없습니다.</div>`}else list.innerHTML=state.queue.map((q,i)=>`<div class="queue-item ${i===0?"active":""}"><div class="queue-index">${i+1}</div><div class="queue-name"><strong>${esc(q.nickname)}</strong><span>${q.source==="soop"?`${Number(q.balloonCount||0).toLocaleString()}개 · ${esc(q.kindLabel||"")}`:esc(q.memo||"수동 등록")}</span></div><div class="queue-draws">${q.remaining}회</div></div>`).join("");saveState()}
 function openConfirm(i){if(!state.board[i]||state.board[i].opened)return;pendingIndex=i;$("#confirmNumber").textContent=formatNumber(i+1);const cur=currentTarget(),name=cur?.nickname||$("#participantName").value.trim()||"이름 없음";$("#confirmParticipant").textContent=`주인공: ${name}${cur?` · 남은 ${cur.remaining}회`:""}`;openModal("confirmModal")}
-function performDraw(){if(pendingIndex===null)return;const item=state.board[pendingIndex];if(!item||item.opened){closeModal("confirmModal");return}const cur=currentTarget(),name=cur?.nickname||$("#participantName").value.trim()||"이름 없음";item.opened=true;item.openedAt=new Date().toISOString();item.participant=name;const time=new Intl.DateTimeFormat("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date());state.history.push({number:formatNumber(pendingIndex+1),participant:name,result:item.type==="win"?`${item.rank} · ${item.prize}`:item.prize,type:item.type,time});if(cur){cur.remaining=Math.max(0,cur.remaining-1);cur.used=(cur.used||0)+1}saveState();closeModal("confirmModal");showResult(item,pendingIndex,name);pendingIndex=null;renderAll()}
+function performDraw(){if(pendingIndex===null)return;const item=state.board[pendingIndex];if(!item||item.opened){closeModal("confirmModal");return}const cur=currentTarget(),name=cur?.nickname||$("#participantName").value.trim()||"이름 없음";item.opened=true;item.openedAt=new Date().toISOString();item.participant=name;const time=new Intl.DateTimeFormat("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date());state.history.push({number:formatNumber(pendingIndex+1),participant:name,result:item.type==="win"?`${item.rank} · ${item.prize}`:item.prize,type:item.type,time});state.lastResult={id:crypto.randomUUID(),at:new Date().toISOString(),index:pendingIndex,participant:name,type:item.type,rank:item.rank,prize:item.prize,color:item.color};if(cur){cur.remaining=Math.max(0,cur.remaining-1);cur.used=(cur.used||0)+1}saveState();closeModal("confirmModal");showResult(item,pendingIndex,name);pendingIndex=null;renderAll()}
 function showResult(item,i,name){const c=$("#resultModalCard");c.classList.toggle("lose-result",item.type==="lose");if(item.type==="win"){$("#resultEmoji").textContent=item.rank==="1등"?"🎉":"✨";$("#resultRank").textContent=item.rank;$("#resultRank").style.background=item.color||"#9f8fff";$("#resultPrize").textContent=item.prize;$("#resultMessage").textContent=item.rank==="1등"?"대박입니다!":"축하합니다!"}else{$("#resultEmoji").textContent="💫";$("#resultRank").textContent="꽝";$("#resultRank").style.background="#9ba7b8";$("#resultPrize").textContent=item.prize;$("#resultMessage").textContent="다음 기회에는 꼭 당첨될 거예요!"}$("#resultMeta").textContent=`${name} · ${formatNumber(i+1)}번`;openModal("resultModal")}
 function addQueueEntry({nickname,draws,source="manual",balloonCount=0,eventId="",kind="MANUAL",memo=""}){draws=Math.max(0,Math.floor(Number(draws)||0));if(!nickname||draws<1)return false;if(eventId&&(state.importedEventIds.includes(eventId)||state.queue.some(q=>q.eventId===eventId)))return false;state.queue.push({id:crypto.randomUUID(),nickname,remaining:draws,total:draws,used:0,source,balloonCount,eventId,kind,kindLabel:kindToLabel(kind),memo,createdAt:new Date().toISOString()});if(eventId){state.importedEventIds.push(eventId);state.importedEventIds=state.importedEventIds.slice(-3000)}saveState();renderQueue();return true}
 function kindToLabel(k){return({BALLOON_GIFTED:"일반 후원",CHALLENGE_MISSION_GIFTED:"도전미션",BATTLE_MISSION_GIFTED:"배틀미션",MANUAL:"수동"})[k]||k||"후원"}
@@ -60,7 +70,127 @@ function renderPreview(){const g=$("#previewGrid");if(!state.board.length){g.inn
 function exportCsv(){if(!state.board.length)return;const rows=[["번호","결과","상품/문구","공개 여부","참가자","공개 시각"]];state.board.forEach((x,i)=>rows.push([formatNumber(i+1),x.type==="win"?x.rank:"꽝",x.prize,x.opened?"공개":"미공개",x.participant||"",x.openedAt||""]));const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="제리츄_뽑기판_결과.csv";a.click();URL.revokeObjectURL(url)}
 function resetProgress(){if(!state.board.length||!confirm("뽑기 결과 배치는 유지하고, 열린 칸과 기록만 초기화할까요?"))return;state.board=state.board.map(x=>({...x,opened:false,openedAt:null,participant:""}));state.history=[];saveState();renderAll()}
 function clearHistory(){if(!confirm("최근 결과 기록만 지울까요? 열린 칸은 그대로 유지됩니다."))return;state.history=[];saveState();renderHistory()}
-$("#confirmDrawBtn").onclick=performDraw;$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
+
+function simpleHash(text){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return String(h>>>0)}
+function publicBroadcastSnapshot(){
+  const cur=currentTarget();
+  const opened=state.board.filter(x=>x.opened).length;
+  const total=state.board.length||Number(state.settings.total)||0;
+  return{
+    settings:{title:state.settings.title,subtitle:state.settings.subtitle,total,columns:state.settings.columns,loseText:state.settings.loseText,prizes:state.settings.prizes},
+    board:state.board.map((x,i)=>x.opened?{i,opened:true,type:x.type,prizeIndex:x.prizeIndex,rank:x.rank,prize:x.prize,color:x.color,participant:x.participant||""}:null),
+    history:state.history.slice(-10),
+    queue:state.queue.filter(q=>q.remaining>0).slice(0,8).map(q=>({nickname:q.nickname,remaining:q.remaining,total:q.total,source:q.source,balloonCount:q.balloonCount||0,kindLabel:q.kindLabel||"",memo:q.memo||""})),
+    session:{active:!!state.session?.active,startedAt:state.session?.startedAt||"",endedAt:state.session?.endedAt||""},
+    lastResult:state.lastResult||null,
+    stats:{remaining:Math.max(0,total-opened),winningRemaining:state.board.filter(x=>x.type==="win"&&!x.opened).length,progress:total?Math.round(opened/total*100):0},
+    currentTarget:cur?{nickname:cur.nickname,remaining:cur.remaining,source:cur.source,balloonCount:cur.balloonCount||0,kindLabel:cur.kindLabel||"",memo:cur.memo||""}:null,
+    updatedAt:new Date().toISOString()
+  }
+}
+function scheduleBroadcastPublish(force=false){
+  if(IS_BROADCAST_VIEW||!state.broadcast?.key||!state.settings.integration?.execUrl||!state.settings.integration?.token)return;
+  clearTimeout(broadcastPublishTimer);
+  broadcastPublishTimer=setTimeout(()=>publishBroadcastState(force),force?40:350)
+}
+async function publishBroadcastState(force=false){
+  if(broadcastPublishing||IS_BROADCAST_VIEW||!state.broadcast?.key)return;
+  broadcastPublishing=true;
+  try{
+    const snap=publicBroadcastSnapshot();
+    const meta={settings:snap.settings,history:snap.history,queue:snap.queue,session:snap.session,lastResult:snap.lastResult,stats:snap.stats,currentTarget:snap.currentTarget,updatedAt:snap.updatedAt};
+    const metaJson=JSON.stringify(meta),metaHash=simpleHash(metaJson),bjId=state.broadcast.bjId||state.settings.integration.bjId||"";
+    if(force||metaHash!==broadcastMetaHash){
+      const r=await fetchJson(apiUrl("drawBroadcastMeta",{bjId,key:state.broadcast.key,meta:metaJson}));
+      if(!r.ok)throw new Error(r.message||"송출 상태 저장 실패");
+      broadcastMetaHash=metaHash
+    }
+    const chunkCount=Math.max(1,Math.ceil(snap.board.length/BROADCAST_CHUNK_SIZE));
+    for(let i=0;i<chunkCount;i++){
+      const chunkJson=JSON.stringify(snap.board.slice(i*BROADCAST_CHUNK_SIZE,(i+1)*BROADCAST_CHUNK_SIZE));
+      const h=simpleHash(chunkJson);
+      if(force||broadcastChunkHashes[i]!==h){
+        const r=await fetchJson(apiUrl("drawBroadcastChunk",{bjId,key:state.broadcast.key,chunkIndex:i,chunk:chunkJson}));
+        if(!r.ok)throw new Error(r.message||"송출 보드 저장 실패");
+        broadcastChunkHashes[i]=h
+      }
+    }
+  }catch(e){console.error("broadcast publish",e)}finally{broadcastPublishing=false}
+}
+async function copyBroadcastUrl(){
+  const s=state.settings.integration||{};
+  if(!s.execUrl||!s.token){alert("관리 설정 → SOOP 연동에서 Apps Script 주소와 연동 토큰을 먼저 저장해 주세요.");return}
+  const btn=$("#copyBroadcastUrlBtn");
+  btn.disabled=true;btn.textContent="주소 준비 중...";
+  try{
+    const data=await fetchJson(apiUrl("drawBroadcastKey",{bjId:s.bjId||""}));
+    if(!data.ok)throw new Error(data.message||"송출 키 생성 실패");
+    state.broadcast={key:data.key,bjId:data.bjId};
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+    broadcastMetaHash="";broadcastChunkHashes=[];
+    await publishBroadcastState(true);
+    const url=new URL(location.href);url.search="";url.hash="";
+    url.searchParams.set("view","broadcast");
+    url.searchParams.set("api",s.execUrl);
+    url.searchParams.set("bjId",data.bjId);
+    url.searchParams.set("key",data.key);
+    const text=url.toString();
+    try{await navigator.clipboard.writeText(text)}catch{const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove()}
+    alert("송출용 주소를 복사했습니다.\nOBS 브라우저 소스의 URL에 붙여넣어 주세요.")
+  }catch(e){alert(`송출 주소 생성 실패: ${e.message}`)}finally{btn.disabled=false;btn.textContent="📺 송출 주소 복사"}
+}
+function renderBroadcastTopbar(){
+  const title=$("#broadcastTitle");if(!title)return;
+  title.textContent=state.settings.title||"제리츄 뽑기판";
+  const cur=currentTarget();
+  $("#broadcastCurrentTarget").textContent=cur?`${cur.nickname} · 남은 ${cur.remaining}회`:"대기 중";
+  $("#broadcastCurrentMeta").textContent=cur?(cur.source==="soop"?`별풍선 ${Number(cur.balloonCount||0).toLocaleString()}개 · ${cur.kindLabel||"SOOP 후원"}`:(cur.memo||"수동 등록")):"후원 대기열을 기다리고 있습니다.";
+  $("#broadcastQueueCount").textContent=`${state.queue.filter(q=>q.remaining>0).length}명`;
+  const total=state.board.length||Number(state.settings.total)||0,opened=state.board.filter(x=>x.opened).length;
+  $("#broadcastRemaining").textContent=Math.max(0,total-opened);
+}
+function publicApiUrl(action,extra={}){
+  const base=PAGE_PARAMS.get("api")||"";if(!base)return"";
+  const u=new URL(base);u.searchParams.set("action",action);u.searchParams.set("bjId",PAGE_PARAMS.get("bjId")||"");u.searchParams.set("key",PAGE_PARAMS.get("key")||"");
+  Object.entries(extra).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=="")u.searchParams.set(k,v)});u.searchParams.set("_",Date.now());return u.toString()
+}
+function applyBroadcastData(data){
+  const meta=data.meta||{},settings=meta.settings||{},boardData=Array.isArray(data.board)?data.board:[];
+  const total=Math.max(0,Number(settings.total)||boardData.length||0);
+  state.settings={...state.settings,...settings,integration:state.settings.integration};
+  state.board=Array.from({length:total},(_,i)=>{
+    const x=boardData[i];return x&&x.opened?{opened:true,type:x.type,prizeIndex:x.prizeIndex,rank:x.rank,prize:x.prize,color:x.color,participant:x.participant||""}:{opened:false,type:"hidden",rank:"",prize:"",color:"#9ba7b8",participant:""}
+  });
+  state.history=Array.isArray(meta.history)?meta.history:[];
+  state.queue=(Array.isArray(meta.queue)?meta.queue:[]).map((q,i)=>({...q,id:`broadcast-${i}`,used:0}));
+  state.session={...state.session,...(meta.session||{})};
+  state.lastResult=meta.lastResult||null;
+  renderAll();
+  const conn=$("#broadcastConnectionText");conn.textContent="실시간 연결";conn.className="ok";
+  const result=meta.lastResult;
+  if(result?.id&&result.id!==lastBroadcastResultId){
+    const age=Date.now()-new Date(result.at||0).getTime();
+    lastBroadcastResultId=result.id;
+    if(age>=0&&age<12000){
+      showResult({type:result.type,rank:result.rank,prize:result.prize,color:result.color},Number(result.index)||0,result.participant||"이름 없음");
+      clearTimeout(broadcastResultTimer);broadcastResultTimer=setTimeout(()=>closeModal("resultModal"),6500)
+    }
+  }
+}
+async function loadBroadcastState(){
+  const conn=$("#broadcastConnectionText");
+  try{
+    const url=publicApiUrl("drawBroadcastRead");if(!url)throw new Error("송출 주소 설정이 없습니다.");
+    const data=await fetchJson(url);if(!data.ok)throw new Error(data.message||"송출 상태 조회 실패");applyBroadcastData(data)
+  }catch(e){console.error(e);if(conn){conn.textContent="연결 오류";conn.className="error"}}
+}
+function initializeBroadcastView(){
+  document.body.classList.add("broadcast-mode");document.title="제리츄 뽑기판 · 송출 화면";
+  $("#broadcastTopbar")?.classList.remove("hidden");
+  renderAll();loadBroadcastState();clearInterval(broadcastPollTimer);broadcastPollTimer=setInterval(loadBroadcastState,2000)
+}
+
+$("#confirmDrawBtn").onclick=performDraw;$("#copyBroadcastUrlBtn").onclick=copyBroadcastUrl;$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
 $("#manualQueueBtn").onclick=()=>openModal("manualQueueModal");$("#manualQueueAddBtn").onclick=()=>{const n=$("#manualNickname").value.trim(),d=$("#manualDraws").value,m=$("#manualMemo").value.trim();if(addQueueEntry({nickname:n,draws:d,memo:m})){closeModal("manualQueueModal");$("#manualNickname").value="";$("#manualDraws").value=1;$("#manualMemo").value=""}};
 $("#targetMinusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining=Math.max(0,c.remaining-1);saveState();renderQueue()}};$("#targetPlusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining++;c.total++;saveState();renderQueue()}};$("#targetSkipBtn").onclick=()=>{const c=currentTarget();if(c){state.queue=state.queue.filter(x=>x.id!==c.id);state.queue.push(c);saveState();renderQueue()}};$("#targetRemoveBtn").onclick=()=>{const c=currentTarget();if(c&&confirm(`${c.nickname} 님을 대기열에서 삭제할까요?`)){state.queue=state.queue.filter(x=>x.id!==c.id);saveState();renderQueue()}};
 function updateSettingsFooter(tabId){const scroll=$(".settings-scroll"),save=$("#saveSettingsBtn"),generate=$("#generateBoardBtn");if(scroll)scroll.scrollTop=0;if(tabId==="soopSettings"){save.textContent="연동 설정 저장";generate.classList.add("hidden")}else{save.textContent="설정만 저장";generate.classList.remove("hidden")}}
@@ -68,4 +198,4 @@ $$(".settings-tab").forEach(t=>t.onclick=()=>{$$(".settings-tab").forEach(x=>x.c
 $$('input[name="ruleMode"]').forEach(x=>x.onchange=updateRulePanels);$("#addRangeRuleBtn").onclick=()=>{$("#rangeRuleEditor").insertAdjacentHTML("beforeend",`<div class="range-rule-row"><input class="range-min" type="number" min="0" value="0"><span>~</span><input class="range-max" type="number" min="0" placeholder="제한 없음"><span>→</span><input class="range-draws" type="number" min="0" value="1"><button class="rule-delete">×</button></div>`);bindRuleDeletes()};$("#addExactRuleBtn").onclick=()=>{$("#exactRuleEditor").insertAdjacentHTML("beforeend",`<div class="exact-rule-row"><input class="exact-count" type="number" min="0" value="500"><span>개 →</span><input class="exact-draws" type="number" min="0" value="1"><button class="rule-delete">×</button></div>`);bindRuleDeletes()};
 $("#testBalloonCount").oninput=updateTestDrawResult;["ratioBalloons","ratioDraws","soopMaxDraws"].forEach(id=>$("#"+id).oninput=updateTestDrawResult);$("#testAddQueueBtn").onclick=()=>{const count=Number($("#testBalloonCount").value)||0,draws=calculateDraws(count,getDraftIntegration());if(draws>0)addQueueEntry({nickname:"연동 테스트",draws,source:"manual",balloonCount:count,memo:`별풍선 ${count.toLocaleString()}개 계산 테스트`})};
 ["settingTotal","settingColumns","settingLoseText","settingTitle","settingSubtitle","soopEnabled","soopExecUrl"].forEach(id=>$("#"+id).addEventListener("input",updateSettingsSummary));$$("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));$$(".modal-backdrop").forEach(m=>m.onclick=e=>{if(e.target===m)closeModal(m.id)});document.addEventListener("keydown",e=>{if(e.key==="Escape")$$(".modal-backdrop:not(.hidden)").forEach(m=>closeModal(m.id))});
-renderAll();restartPolling();
+if(IS_BROADCAST_VIEW){initializeBroadcastView()}else{renderAll();restartPolling();setTimeout(()=>scheduleBroadcastPublish(true),700)}

@@ -167,3 +167,70 @@ select{width:100%;height:48px;padding:0 13px;border:1px solid var(--line);border
   .session-actions{display:grid;grid-template-columns:1fr}
   .session-copy h2{font-size:19px}
 }
+
+
+/* V3.5 송출 전용 주소 */
+.btn.broadcast-copy{
+  color:#fff;
+  background:linear-gradient(135deg,#7a86ff,#5f72e8);
+  box-shadow:0 10px 22px rgba(95,114,232,.22)
+}
+.broadcast-topbar{
+  margin-bottom:14px;
+  padding:14px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px
+}
+.broadcast-brand{display:flex;align-items:center;gap:12px;min-width:240px}
+.broadcast-brand h1{margin:2px 0 0;font-size:25px;letter-spacing:-.04em}
+.broadcast-live-dot{width:14px;height:14px;border-radius:50%;background:#ff5975;box-shadow:0 0 0 7px rgba(255,89,117,.13);animation:broadcastPulse 1.5s ease-in-out infinite}
+@keyframes broadcastPulse{50%{box-shadow:0 0 0 11px rgba(255,89,117,.04)}}
+.broadcast-current{flex:1;min-width:0;padding:8px 18px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.broadcast-current span{display:block;color:var(--muted);font-size:11px;font-weight:850}
+.broadcast-current strong{display:block;margin-top:2px;font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.broadcast-current small{display:block;margin-top:2px;color:var(--muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.broadcast-stats{display:flex;gap:9px}
+.broadcast-stats>div{min-width:92px;padding:9px 12px;border-radius:14px;background:#f3f7ff;border:1px solid #e1eaf8;text-align:center}
+.broadcast-stats span{display:block;color:var(--muted);font-size:10px;font-weight:850}
+.broadcast-stats strong{display:block;margin-top:3px;font-size:15px}
+.broadcast-stats strong.ok{color:#299c64}.broadcast-stats strong.error{color:var(--danger)}
+
+body.broadcast-mode{overflow-x:hidden;background:linear-gradient(140deg,#f5fbff 0%,#f7f9ff 52%,#fff 100%)}
+body.broadcast-mode .page-shell{width:100%;max-width:none;padding:14px}
+body.broadcast-mode .hero,
+body.broadcast-mode .control-row,
+body.broadcast-mode .session-panel,
+body.broadcast-mode .queue-panel{display:none!important}
+body.broadcast-mode #broadcastTopbar{display:flex!important}
+body.broadcast-mode .content-grid{grid-template-columns:300px minmax(0,1fr);gap:14px;margin-top:0}
+body.broadcast-mode .prize-panel{position:static;padding:18px;border-radius:22px}
+body.broadcast-mode .board-area{padding:18px;min-height:calc(100vh - 118px);border-radius:22px}
+body.broadcast-mode .board-topline{margin-bottom:12px}
+body.broadcast-mode .draw-board{gap:7px}
+body.broadcast-mode .draw-tile{height:72px;aspect-ratio:auto;border-radius:14px;pointer-events:none}
+body.broadcast-mode .draw-tile::before{inset:5px;border-radius:10px}
+body.broadcast-mode .draw-tile .tile-number{font-size:16px}
+body.broadcast-mode .draw-tile.opened .tile-number{font-size:11px}
+body.broadcast-mode .text-btn,
+body.broadcast-mode .modal-close,
+body.broadcast-mode .result-modal>.btn{display:none!important}
+body.broadcast-mode .modal-backdrop{pointer-events:none}
+body.broadcast-mode .result-modal{padding-bottom:28px}
+body.broadcast-mode .recent-history{max-height:245px}
+body.broadcast-mode .prize-item{padding:10px 11px}
+body.broadcast-mode .prize-list{gap:7px;margin-top:13px}
+
+@media(max-width:1180px){
+  body.broadcast-mode .content-grid{grid-template-columns:250px minmax(0,1fr)}
+  body.broadcast-mode .prize-list{grid-template-columns:1fr}
+  body.broadcast-mode .draw-tile{height:64px}
+  .broadcast-current{display:none}
+}
+@media(max-width:800px){
+  body.broadcast-mode .content-grid{grid-template-columns:1fr}
+  body.broadcast-mode .prize-panel{display:none}
+  body.broadcast-mode .draw-tile{height:58px}
+  .broadcast-stats>div{min-width:72px}
+}
