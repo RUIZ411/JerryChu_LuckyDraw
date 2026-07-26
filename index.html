@@ -48,6 +48,26 @@
         </div>
       </section>
 
+
+      <section class="session-panel glass-card">
+        <div class="session-status-wrap">
+          <span id="sessionStatusDot" class="session-status-dot standby"></span>
+          <div class="session-copy">
+            <span class="mini-label">DRAW SESSION</span>
+            <h2 id="sessionStatusTitle">뽑기 시작 대기</h2>
+            <p id="sessionStatusDescription">뽑기판을 만든 뒤 시작 버튼을 누르면, 그 시점 이후에 저장된 후원만 읽어옵니다.</p>
+            <div class="session-meta">
+              <span id="sessionStartedAt">시작 시각: -</span>
+              <span id="sessionBaseRow">수신 기준: -</span>
+            </div>
+          </div>
+        </div>
+        <div class="session-actions">
+          <button id="startSessionBtn" class="btn primary session-start-btn">▶ 뽑기 시작</button>
+          <button id="endSessionBtn" class="btn danger-outline" disabled>■ 후원 수신 종료</button>
+        </div>
+      </section>
+
       <section class="queue-panel glass-card">
         <div class="queue-current">
           <div class="section-heading compact">
@@ -115,7 +135,7 @@
 
         <div id="soopSettings" class="settings-tab-panel hidden">
           <section class="settings-section">
-            <div class="toggle-heading"><div><h3>SOOP 후원 자동 연동</h3><p class="helper">확장프로그램이 보낸 후원 내역을 Apps Script에서 가져옵니다.</p></div><label class="switch"><input id="soopEnabled" type="checkbox"><span></span></label></div>
+            <div class="toggle-heading"><div><h3>SOOP 후원 자동 연동</h3><p class="helper">연동 설정을 저장한 뒤 메인 화면의 뽑기 시작 버튼을 눌러야 실제 수신이 시작됩니다.</p></div><label class="switch"><input id="soopEnabled" type="checkbox"><span></span></label></div>
             <div class="form-grid integration-fields">
               <label class="full-width"><span>Apps Script Web App 주소 (/exec)</span><input id="soopExecUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec"></label>
               <label><span>연동 토큰</span><input id="soopToken" type="password" placeholder="SOOP_COLLECTOR_TOKEN"></label>
