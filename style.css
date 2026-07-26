@@ -234,3 +234,152 @@ body.broadcast-mode .prize-list{gap:7px;margin-top:13px}
   body.broadcast-mode .draw-tile{height:58px}
   .broadcast-stats>div{min-width:72px}
 }
+
+
+/* =========================================================
+ * V3.6 송출 화면 전용 컴팩트 레이아웃
+ * - 상단 연결/수신 상태 숨김
+ * - 안내 문구와 왼쪽 패널 숨김
+ * - 뽑기판을 한 화면 높이에 자동 맞춤
+ * - 하단에 등수별 남은 수량 표시
+ * ======================================================= */
+.broadcast-prize-strip{display:none}
+
+body.broadcast-mode{
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+}
+body.broadcast-mode .page-shell{
+  width:100vw;
+  height:100vh;
+  padding:6px;
+  overflow:hidden;
+}
+body.broadcast-mode main{
+  width:100%;
+  height:100%;
+}
+body.broadcast-mode #broadcastTopbar{
+  display:none!important;
+}
+body.broadcast-mode .content-grid{
+  display:block;
+  width:100%;
+  height:100%;
+  margin:0;
+}
+body.broadcast-mode .prize-panel{
+  display:none!important;
+}
+body.broadcast-mode .board-area{
+  width:100%;
+  height:100%;
+  min-height:0;
+  padding:7px;
+  border-radius:16px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.broadcast-mode .board-topline{
+  display:none!important;
+}
+body.broadcast-mode .draw-board{
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(var(--board-columns,10),minmax(0,1fr));
+  grid-template-rows:repeat(var(--board-rows,10),minmax(0,1fr));
+  gap:4px;
+  align-content:stretch;
+}
+body.broadcast-mode .draw-tile{
+  width:100%;
+  height:auto;
+  min-width:0;
+  min-height:0;
+  aspect-ratio:auto;
+  border-radius:8px;
+  box-shadow:inset 0 0 0 1px rgba(218,229,245,.94),0 2px 5px rgba(90,111,155,.08);
+}
+body.broadcast-mode .draw-tile::before{
+  inset:3px;
+  border-radius:5px;
+}
+body.broadcast-mode .draw-tile::after{
+  right:-5px;
+  top:-5px;
+  width:15px;
+  height:15px;
+}
+body.broadcast-mode .draw-tile .tile-number{
+  font-size:clamp(7px,1.55vmin,16px);
+  line-height:1.05;
+}
+body.broadcast-mode .draw-tile.opened .tile-number{
+  padding:2px;
+  font-size:clamp(5px,1.05vmin,11px);
+  line-height:1.05;
+  word-break:keep-all;
+}
+body.broadcast-mode #broadcastPrizeStrip{
+  flex:0 0 auto;
+  display:flex!important;
+  align-items:stretch;
+  justify-content:center;
+  gap:6px;
+  width:100%;
+  min-height:46px;
+  margin-top:6px;
+  overflow:hidden;
+}
+body.broadcast-mode .broadcast-prize-chip{
+  position:relative;
+  flex:1 1 0;
+  min-width:0;
+  max-width:240px;
+  padding:6px 9px 6px 13px;
+  border-radius:11px;
+  background:#f4f8ff;
+  border:1px solid #dfe9f8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  white-space:nowrap;
+  overflow:hidden;
+}
+body.broadcast-mode .broadcast-prize-chip::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:5px;
+  background:var(--chip-color,#72beff);
+}
+body.broadcast-mode .broadcast-prize-chip span{
+  color:var(--chip-color,#4d85ff);
+  font-size:clamp(9px,1.45vmin,15px);
+  font-weight:950;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body.broadcast-mode .broadcast-prize-chip strong{
+  color:var(--ink);
+  font-size:clamp(9px,1.45vmin,15px);
+  font-weight:950;
+}
+
+@media (max-width:700px), (max-height:650px){
+  body.broadcast-mode .page-shell{padding:3px}
+  body.broadcast-mode .board-area{padding:4px;border-radius:10px}
+  body.broadcast-mode .draw-board{gap:2px}
+  body.broadcast-mode .draw-tile{border-radius:6px}
+  body.broadcast-mode .draw-tile::before{inset:2px;border-radius:4px}
+  body.broadcast-mode #broadcastPrizeStrip{min-height:38px;margin-top:3px;gap:3px}
+  body.broadcast-mode .broadcast-prize-chip{padding:4px 5px 4px 8px;border-radius:7px;gap:3px}
+  body.broadcast-mode .broadcast-prize-chip::before{width:3px}
+}
