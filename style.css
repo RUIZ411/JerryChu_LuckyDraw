@@ -1290,3 +1290,143 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip.soldout{
     font-size:clamp(8px,1.9vmin,12px)!important;
   }
 }
+
+/* =========================================================
+ * V4.5 미니 송출 높이 보정
+ * - 상단 공백 제거
+ * - 뽑기판 + 하단 잔여 수량을 100vh 안에 고정
+ * - 하단 2줄도 잘리지 않도록 높이 축소
+ * ======================================================= */
+html:has(body.broadcast-mode),
+body.broadcast-mode{
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .page-shell,
+body.broadcast-mode.broadcast-mini .page-shell{
+  width:100vw!important;
+  height:100vh!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode main,
+body.broadcast-mode.broadcast-mini main,
+body.broadcast-mode .content-grid,
+body.broadcast-mode.broadcast-mini .content-grid{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .board-area,
+body.broadcast-mode.broadcast-mini .board-area{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:1px!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  display:grid!important;
+  grid-template-rows:minmax(0,1fr) auto!important;
+  gap:1px!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .draw-board,
+body.broadcast-mode.broadcast-mini .draw-board{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  align-self:stretch!important;
+  align-content:stretch!important;
+  gap:2px!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .draw-tile,
+body.broadcast-mode.broadcast-mini .draw-tile{
+  min-height:0!important;
+  border-radius:5px!important;
+}
+body.broadcast-mode .draw-tile::before,
+body.broadcast-mode.broadcast-mini .draw-tile::before{
+  inset:2px!important;
+  border-radius:3px!important;
+}
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  width:100%!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  gap:1px!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .broadcast-prize-row,
+body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+  flex:0 0 22px!important;
+  width:100%!important;
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  gap:2px!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .broadcast-prize-chip,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+  height:22px!important;
+  min-height:22px!important;
+  max-height:22px!important;
+  padding:1px 3px 1px 6px!important;
+  border-radius:4px!important;
+  gap:2px!important;
+  box-shadow:none!important;
+}
+body.broadcast-mode .broadcast-prize-chip::before,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+  width:2px!important;
+}
+body.broadcast-mode .broadcast-prize-chip span,
+body.broadcast-mode .broadcast-prize-chip strong,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip span,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
+  font-size:clamp(8px,2.1vmin,12px)!important;
+  line-height:1!important;
+}
+
+@media (max-height:420px){
+  body.broadcast-mode .draw-board,
+  body.broadcast-mode.broadcast-mini .draw-board{
+    gap:1px!important;
+  }
+  body.broadcast-mode .broadcast-prize-row,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+    flex-basis:19px!important;
+    height:19px!important;
+    min-height:19px!important;
+    max-height:19px!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+    height:19px!important;
+    min-height:19px!important;
+    max-height:19px!important;
+    padding:1px 2px 1px 5px!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip span,
+  body.broadcast-mode .broadcast-prize-chip strong,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip span,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
+    font-size:clamp(7px,1.95vmin,10px)!important;
+  }
+}
