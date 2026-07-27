@@ -1892,3 +1892,173 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
   background:#eaf8f1;
   border-color:#c8ead9;
 }
+
+/* =========================================================
+ * V5.3 하단 상품명 가독성 확대
+ * 상품명 약 1.5~2배 확대 + 카드 레이아웃 재조정
+ * ======================================================= */
+body.broadcast-mode .board-area,
+body.broadcast-mode.broadcast-mini .board-area{
+  grid-template-rows:minmax(0,1fr) auto!important;
+  gap:4px!important;
+}
+
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  flex:0 0 auto!important;
+  gap:5px!important;
+  padding:2px 2px 3px!important;
+}
+
+body.broadcast-mode .broadcast-prize-row,
+body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+  flex:0 0 58px!important;
+  width:100%!important;
+  height:58px!important;
+  min-height:58px!important;
+  max-height:58px!important;
+  gap:5px!important;
+  align-items:stretch!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+  height:58px!important;
+  min-height:58px!important;
+  max-height:58px!important;
+  padding:5px 7px 7px 9px!important;
+  border-radius:9px!important;
+  display:grid!important;
+  grid-template-rows:18px minmax(0,1fr)!important;
+  align-content:stretch!important;
+  justify-content:stretch!important;
+  gap:3px!important;
+  overflow:hidden!important;
+  background:linear-gradient(180deg,#ffffff 0%,#f5f9ff 100%)!important;
+  border:1px solid rgba(201,218,244,.98)!important;
+  box-shadow:0 3px 9px rgba(76,109,160,.12)!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip::before,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+  width:4px!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-top,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-top{
+  width:100%!important;
+  height:18px!important;
+  min-height:18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:4px!important;
+  line-height:1!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-rank,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-rank{
+  min-width:31px!important;
+  padding:2px 6px!important;
+  border-radius:999px!important;
+  font-size:clamp(10px,1.75vmin,14px)!important;
+  line-height:1.05!important;
+  font-weight:900!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-count,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-count{
+  font-size:clamp(10px,1.75vmin,14px)!important;
+  line-height:1!important;
+  font-weight:900!important;
+  color:#4c6689!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-prize,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+  width:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:1px 0 0!important;
+  display:flex!important;
+  align-items:center!important;
+  color:#526f96!important;
+  font-size:clamp(13px,2.55vmin,20px)!important;
+  font-weight:800!important;
+  line-height:1.18!important;
+  letter-spacing:-.025em!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip.soldout,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip.soldout{
+  opacity:.52!important;
+}
+
+/* 작은 OBS 소스: 약 300x400 */
+@media (max-width:340px), (max-height:430px){
+  body.broadcast-mode .board-area,
+  body.broadcast-mode.broadcast-mini .board-area{
+    gap:2px!important;
+  }
+
+  body.broadcast-mode #broadcastPrizeStrip,
+  body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+    gap:2px!important;
+    padding:0 1px 1px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-row,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+    flex-basis:42px!important;
+    height:42px!important;
+    min-height:42px!important;
+    max-height:42px!important;
+    gap:2px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+    height:42px!important;
+    min-height:42px!important;
+    max-height:42px!important;
+    padding:3px 4px 4px 6px!important;
+    border-radius:6px!important;
+    grid-template-rows:13px minmax(0,1fr)!important;
+    gap:2px!important;
+    box-shadow:none!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip::before,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+    width:3px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip .chip-top,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-top{
+    height:13px!important;
+    min-height:13px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip .chip-rank,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-rank{
+    min-width:22px!important;
+    padding:1px 3px!important;
+    font-size:clamp(7px,2.3vmin,10px)!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip .chip-count,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-count{
+    font-size:clamp(7px,2.3vmin,10px)!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip .chip-prize,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+    padding-top:0!important;
+    font-size:clamp(10px,3.2vmin,14px)!important;
+    line-height:1.1!important;
+  }
+}
