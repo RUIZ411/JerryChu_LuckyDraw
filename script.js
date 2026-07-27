@@ -197,34 +197,27 @@ async function copyBroadcastUrl(layout="full"){
 }
 function renderBroadcastPrizeStrip(){
   const strip=$("#broadcastPrizeStrip");if(!strip)return;
-  if(IS_BROADCAST_VIEW){strip.innerHTML="";return}
+  if(!IS_BROADCAST_VIEW){strip.innerHTML="";return}
   const prizes=Array.isArray(state.settings.prizes)?state.settings.prizes:[];
-  strip.innerHTML=prizes.map((p,i)=>{
-    const total=Math.max(0,Number(p.count)||0);
-    const opened=state.board.filter(x=>x.opened&&x.type==="win"&&Number(x.prizeIndex)===i).length;
-    const remaining=state.board.length?Math.max(0,total-opened):total;
-    return `<div class="broadcast-prize-chip" style="--chip-color:${esc(p.color||"#72beff")}"><span>${esc(p.rank)}</span><strong>${remaining}개 남음</strong></div>`;
-  }).join("");
+  const maxPerRow=5;
+  const rows=[];
+  for(let start=0;start<prizes.length;start+=maxPerRow){
+    const row=prizes.slice(start,start+maxPerRow).map((p,offset)=>{
+      const i=start+offset;
+      const total=Math.max(0,Number(p.count)||0);
+      const opened=state.board.filter(x=>x.opened&&x.type==="win"&&Number(x.prizeIndex)===i).length;
+      const remaining=state.board.length?Math.max(0,total-opened):total;
+      return `<div class="broadcast-prize-chip ${remaining<=0?"soldout":""}" style="--chip-color:${esc(p.color||"#72beff")}"><span>${esc(p.rank)}</span><strong>${remaining}개</strong></div>`;
+    }).join("");
+    rows.push(`<div class="broadcast-prize-row">${row}</div>`);
+  }
+  strip.innerHTML=rows.join("");
+  strip.classList.toggle("multi-row",rows.length>1);
 }
 function renderBroadcastSidePanel(){
-  const panel=$("#broadcastSidePanel"),list=$("#broadcastPrizePanelList"),title=$("#broadcastSideTitle");
-  if(!panel||!list||!title)return;
-  title.textContent=state.settings.title||"제리츄 뽑기판";
-  if(!IS_BROADCAST_VIEW){panel.classList.add("hidden");list.innerHTML="";return}
-  panel.classList.remove("hidden");
-  const prizes=Array.isArray(state.settings.prizes)?state.settings.prizes:[];
-  list.style.setProperty("--broadcast-prize-count",Math.max(1,prizes.length));
-  list.innerHTML=prizes.map((p,i)=>{
-    const total=Math.max(0,Number(p.count)||0);
-    const opened=state.board.filter(x=>x.opened&&x.type==="win"&&Number(x.prizeIndex)===i).length;
-    const remaining=state.board.length?Math.max(0,total-opened):total;
-    const soldOut=remaining<=0;
-    return `<div class="broadcast-side-item ${soldOut?"soldout":""}" style="--panel-rank-color:${esc(p.color||"#72beff")}">
-      <div class="broadcast-side-rank">${esc(p.rank)}</div>
-      <div class="broadcast-side-copy"><strong>${esc(p.prize)}</strong></div>
-      <div class="broadcast-side-count">${soldOut?`<span class="soldout-label">품절</span>`:`<b>${remaining}</b><small>개</small>`}</div>
-    </div>`;
-  }).join("") || `<div class="broadcast-side-empty">표시할 당첨 항목이 없습니다.</div>`;
+  const panel=$("#broadcastSidePanel"),list=$("#broadcastPrizePanelList");
+  if(panel)panel.classList.add("hidden");
+  if(list)list.innerHTML="";
 }
 
 function renderBroadcastTopbar(){

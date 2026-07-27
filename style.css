@@ -1148,3 +1148,145 @@ body.broadcast-mode.broadcast-mini .draw-tile.opened .tile-number{
     height:18px!important;
   }
 }
+
+/* =========================================================
+ * V4.4 송출 화면: 우측 배너 제거 + 하단 잔여 수량 복귀
+ * ======================================================= */
+body.broadcast-mode .content-grid,
+body.broadcast-mode.broadcast-mini .content-grid{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  margin:0!important;
+}
+body.broadcast-mode #broadcastSidePanel,
+body.broadcast-mode.broadcast-mini #broadcastSidePanel{
+  display:none!important;
+}
+body.broadcast-mode .board-area,
+body.broadcast-mode.broadcast-mini .board-area{
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  padding:6px!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+}
+body.broadcast-mode .draw-board,
+body.broadcast-mode.broadcast-mini .draw-board{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  width:100%!important;
+  gap:3px!important;
+}
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  flex:0 0 auto!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+  width:100%!important;
+  min-height:0!important;
+  margin-top:5px!important;
+  gap:4px!important;
+  overflow:visible!important;
+}
+body.broadcast-mode .broadcast-prize-row,
+body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  gap:5px;
+  width:100%;
+  min-width:0;
+}
+body.broadcast-mode .broadcast-prize-chip,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+  position:relative;
+  flex:1 1 0!important;
+  min-width:0!important;
+  max-width:none!important;
+  min-height:38px!important;
+  padding:5px 9px 5px 13px!important;
+  border-radius:10px!important;
+  background:rgba(247,250,255,.98)!important;
+  border:1px solid #dbe7f7!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  box-shadow:0 3px 8px rgba(87,118,164,.07)!important;
+}
+body.broadcast-mode .broadcast-prize-chip::before,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:4px!important;
+  background:var(--chip-color,#72beff);
+}
+body.broadcast-mode .broadcast-prize-chip span,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip span{
+  color:var(--chip-color,#4d85ff)!important;
+  font-size:clamp(13px,1.65vmin,20px)!important;
+  font-weight:1000!important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body.broadcast-mode .broadcast-prize-chip strong,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
+  color:#33415f!important;
+  font-size:clamp(13px,1.65vmin,20px)!important;
+  font-weight:1000!important;
+}
+body.broadcast-mode .broadcast-prize-chip.soldout,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip.soldout{
+  opacity:.46;
+  filter:saturate(.4);
+}
+
+/* 작은 OBS 소스에서는 하단 카드 높이를 줄여 100칸을 최대한 크게 유지 */
+@media (max-width:700px), (max-height:650px){
+  body.broadcast-mode .board-area,
+  body.broadcast-mode.broadcast-mini .board-area{
+    padding:4px!important;
+    border-radius:9px!important;
+  }
+  body.broadcast-mode .draw-board,
+  body.broadcast-mode.broadcast-mini .draw-board{
+    gap:2px!important;
+  }
+  body.broadcast-mode #broadcastPrizeStrip,
+  body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+    margin-top:3px!important;
+    gap:2px!important;
+  }
+  body.broadcast-mode .broadcast-prize-row,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+    gap:3px!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+    min-height:25px!important;
+    padding:2px 4px 2px 7px!important;
+    border-radius:6px!important;
+    gap:3px!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip::before,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+    width:2px!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip span,
+  body.broadcast-mode .broadcast-prize-chip strong,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip span,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
+    font-size:clamp(8px,1.9vmin,12px)!important;
+  }
+}
