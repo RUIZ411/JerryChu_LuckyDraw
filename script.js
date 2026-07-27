@@ -90,6 +90,57 @@ function updateTestDrawResult(){try{$("#testDrawResult").textContent=`${calculat
 function renderPreview(){const g=$("#previewGrid");if(!state.board.length){g.innerHTML=`<div class="empty-state">생성된 뽑기판이 없습니다.</div>`;return}g.innerHTML=state.board.map((x,i)=>`<div class="preview-item ${x.type==="lose"?"lose-preview":""}" style="--preview-color:${esc(x.color||"#9f8fff")}"><b>${formatNumber(i+1)}번 ${x.opened?"· 공개됨":""}</b>${x.type==="win"?`${esc(x.rank)} · ${esc(x.prize)}`:esc(x.prize)}</div>`).join("")}
 function exportCsv(){if(!state.board.length)return;const rows=[["번호","결과","상품/문구","공개 여부","참가자","공개 시각"]];state.board.forEach((x,i)=>rows.push([formatNumber(i+1),x.type==="win"?x.rank:"꽝",x.prize,x.opened?"공개":"미공개",x.participant||"",x.openedAt||""]));const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="제리츄_뽑기판_결과.csv";a.click();URL.revokeObjectURL(url)}
 function resetProgress(){if(!state.board.length||!confirm("뽑기 결과 배치는 유지하고, 열린 칸과 기록만 초기화할까요?"))return;state.board=state.board.map(x=>({...x,opened:false,openedAt:null,participant:""}));state.history=[];saveState();renderAll()}
+async function copyWinnerHistory(){
+  const winners=(Array.isArray(state.history)?state.history:[]).filter(x=>x.type==="win");
+  if(!winners.length){alert("복사할 당첨 기록이 없습니다.");return}
+  const groups=[];
+  const groupMap=new Map();
+  winners.forEach(x=>{
+    const boardIndex=Math.max(0,(Number(x.number)||1)-1);
+    const boardItem=state.board[boardIndex];
+    let rank=boardItem?.type==="win"?(boardItem.rank||"당첨"):"";
+    let prize=boardItem?.type==="win"?(boardItem.prize||""):"";
+    if(!rank){
+      const parts=String(x.result||"").split(" · ");
+      rank=parts.shift()||"당첨";
+      prize=parts.join(" · ");
+    }
+    const key=`${rank}\u0000${prize}`;
+    if(!groupMap.has(key)){
+      const group={rank,prize,items:[]};
+      groupMap.set(key,group);
+      groups.push(group);
+    }
+    groupMap.get(key).items.push({participant:x.participant||"이름 없음",number:x.number||"-"});
+  });
+  const lines=[`[${state.settings.title||"제리츄 뽑기판"} 당첨자]`,""];
+  groups.forEach((group,index)=>{
+    lines.push(`${group.rank}${group.prize?` | ${group.prize}`:""}`);
+    group.items.forEach(item=>lines.push(`- ${item.participant} (${item.number}번)`));
+    if(index<groups.length-1)lines.push("");
+  });
+  lines.push("",`총 당첨 ${winners.length}건`);
+  const copiedText=lines.join("\n");
+  try{
+    await navigator.clipboard.writeText(copiedText);
+  }catch{
+    const textarea=document.createElement("textarea");
+    textarea.value=copiedText;
+    textarea.style.position="fixed";
+    textarea.style.opacity="0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+  const button=$("#copyWinnersBtn");
+  if(button){
+    const original=button.textContent;
+    button.textContent="복사 완료 ✓";
+    button.classList.add("copied");
+    setTimeout(()=>{button.textContent=original;button.classList.remove("copied")},1400);
+  }
+}
 function clearHistory(){if(!confirm("최근 결과 기록만 지울까요? 열린 칸은 그대로 유지됩니다."))return;state.history=[];saveState();renderHistory()}
 
 function simpleHash(text){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return String(h>>>0)}
@@ -311,7 +362,7 @@ function initializeBroadcastView(){
   loadBroadcastState()
 }
 
-$("#confirmDrawBtn").onclick=performDraw;$("#copyBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("full");$("#copyMiniBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("mini");$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
+$("#confirmDrawBtn").onclick=performDraw;$("#copyBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("full");$("#copyMiniBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("mini");$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#copyWinnersBtn").onclick=copyWinnerHistory;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
 $("#manualQueueBtn").onclick=()=>openModal("manualQueueModal");$("#manualQueueAddBtn").onclick=()=>{const n=$("#manualNickname").value.trim(),d=$("#manualDraws").value,m=$("#manualMemo").value.trim();if(addQueueEntry({nickname:n,draws:d,memo:m})){closeModal("manualQueueModal");$("#manualNickname").value="";$("#manualDraws").value=1;$("#manualMemo").value=""}};
 $("#targetMinusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining=Math.max(0,c.remaining-1);saveState();renderQueue()}};$("#targetPlusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining++;c.total++;saveState();renderQueue()}};$("#targetSkipBtn").onclick=()=>{const c=currentTarget();if(c){state.queue=state.queue.filter(x=>x.id!==c.id);state.queue.push(c);saveState();renderQueue()}};$("#targetRemoveBtn").onclick=()=>{const c=currentTarget();if(c&&confirm(`${c.nickname} 님을 대기열에서 삭제할까요?`)){state.queue=state.queue.filter(x=>x.id!==c.id);saveState();renderQueue()}};
 function updateSettingsFooter(tabId){const scroll=$(".settings-scroll"),save=$("#saveSettingsBtn"),generate=$("#generateBoardBtn");if(scroll)scroll.scrollTop=0;if(tabId==="soopSettings"){save.textContent="연동 설정 저장";generate.classList.add("hidden")}else if(tabId==="soundSettings"){save.textContent="효과음 설정 저장";generate.classList.add("hidden")}else{save.textContent="설정만 저장";generate.classList.remove("hidden")}}
