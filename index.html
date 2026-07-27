@@ -141,7 +141,7 @@
     <div class="modal settings-modal">
       <button class="modal-close" data-close="settingsModal">×</button>
       <div class="modal-header"><div><span class="mini-label">ADMIN SETTINGS</span><h2>제리츄 뽑기판 설정</h2></div><span class="settings-preview"><img src="assets/mascot-character.png" alt="캐릭터 미리보기" /></span></div>
-      <div class="settings-tabs"><button class="settings-tab active" data-tab="boardSettings">뽑기판</button><button class="settings-tab" data-tab="soopSettings">SOOP 연동</button></div>
+      <div class="settings-tabs"><button class="settings-tab active" data-tab="boardSettings">뽑기판</button><button class="settings-tab" data-tab="soopSettings">SOOP 연동</button><button class="settings-tab" data-tab="soundSettings">효과음</button></div>
       <div class="settings-scroll">
         <div id="boardSettings" class="settings-tab-panel">
           <section class="settings-section"><h3>기본 설정</h3><div class="form-grid">
@@ -178,6 +178,64 @@
           </section>
 
           <section class="settings-section test-calculator"><h3>지급 횟수 계산 테스트</h3><div class="test-row"><input id="testBalloonCount" type="number" min="0" value="1000"><span>개 후원 →</span><strong id="testDrawResult">2회</strong><button id="testAddQueueBtn" class="btn secondary small">테스트 대기열 추가</button></div></section>
+        </div>
+
+        <div id="soundSettings" class="settings-tab-panel hidden">
+          <section class="settings-section">
+            <div class="toggle-heading">
+              <div>
+                <h3>결과 효과음</h3>
+                <p class="helper">추첨 결과가 송출 화면에 표시되는 순간 결과에 맞는 효과음을 한 번 재생합니다.</p>
+              </div>
+              <label class="switch"><input id="soundEnabled" type="checkbox" checked><span></span></label>
+            </div>
+
+            <div class="sound-volume-row">
+              <div>
+                <strong>전체 음량</strong>
+                <p class="helper">OBS 오디오 믹서에서 최종 음량을 한 번 더 조절할 수 있습니다.</p>
+              </div>
+              <div class="sound-volume-control">
+                <input id="soundVolume" type="range" min="0" max="100" step="1" value="80">
+                <b id="soundVolumeValue">80%</b>
+              </div>
+            </div>
+
+            <label class="sound-option-row">
+              <input id="soundOperatorEnabled" type="checkbox">
+              <span><strong>운영 화면에서도 효과음 재생</strong><small>기본값은 꺼짐입니다. 켜면 운영 화면과 OBS에서 동시에 소리가 날 수 있습니다.</small></span>
+            </label>
+          </section>
+
+          <section class="settings-section">
+            <div class="section-heading compact">
+              <div>
+                <h3>결과별 효과음</h3>
+                <p class="helper">당첨 목록의 첫 번째 항목을 최고 등수 효과음으로 처리합니다.</p>
+              </div>
+            </div>
+
+            <div class="sound-card-list">
+              <div class="sound-card first-sound-card">
+                <label><input id="soundFirstEnabled" type="checkbox" checked><span><strong>최고 등수</strong><small>화려한 팡파르</small></span></label>
+                <button class="btn secondary small" type="button" data-sound-test="first">▶ 테스트</button>
+              </div>
+              <div class="sound-card win-sound-card">
+                <label><input id="soundWinEnabled" type="checkbox" checked><span><strong>일반 당첨</strong><small>밝은 당첨 차임</small></span></label>
+                <button class="btn secondary small" type="button" data-sound-test="win">▶ 테스트</button>
+              </div>
+              <div class="sound-card lose-sound-card">
+                <label><input id="soundLoseEnabled" type="checkbox" checked><span><strong>꽝</strong><small>짧고 귀여운 실패음</small></span></label>
+                <button class="btn secondary small" type="button" data-sound-test="lose">▶ 테스트</button>
+              </div>
+            </div>
+            <p id="soundTestStatus" class="sound-test-status">테스트 버튼으로 각 효과음을 미리 들어볼 수 있습니다.</p>
+          </section>
+
+          <section class="settings-section sound-guide-box">
+            <h3>OBS 확인 사항</h3>
+            <p>브라우저 소스의 오디오가 OBS 오디오 믹서에 표시되어야 방송으로 송출됩니다. 소스가 음소거되어 있지 않은지 확인해 주세요.</p>
+          </section>
         </div>
       </div>
       <div class="modal-actions sticky-actions"><button class="btn secondary" data-close="settingsModal">닫기</button><button id="saveSettingsBtn" class="btn secondary">설정만 저장</button><button id="generateBoardBtn" class="btn primary">새 뽑기판 생성</button></div>

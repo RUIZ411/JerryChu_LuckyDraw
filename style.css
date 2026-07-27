@@ -392,3 +392,101 @@ body.broadcast-mode .broadcast-prize-chip strong{
 
 
 /* V3.7 송출 가독성 개선: 번호, 공개 결과, 하단 잔여 수량 폰트 확대 */
+
+/* =========================================================
+ * V3.8 결과 효과음 설정
+ * ======================================================= */
+.sound-volume-row{
+  margin-top:20px;
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+  border:1px solid #e1eaf8;
+  border-radius:17px;
+  background:#f7faff;
+}
+.sound-volume-row strong{display:block;font-size:15px}
+.sound-volume-control{
+  min-width:min(330px,48%);
+  display:flex;
+  align-items:center;
+  gap:13px;
+}
+.sound-volume-control input[type="range"]{
+  height:8px;
+  padding:0;
+  border:0;
+  box-shadow:none;
+  accent-color:var(--blue-deep);
+}
+.sound-volume-control b{
+  min-width:48px;
+  color:var(--blue-deep);
+  font-size:15px;
+  text-align:right;
+}
+.sound-option-row{
+  margin-top:13px;
+  padding:14px 16px;
+  display:flex!important;
+  align-items:flex-start;
+  gap:11px;
+  border:1px solid #e5edf9;
+  border-radius:15px;
+  background:#fff;
+  cursor:pointer;
+}
+.sound-option-row>input{width:18px;height:18px;margin-top:2px;accent-color:var(--blue-deep)}
+.sound-option-row>span{display:block;flex:1}
+.sound-option-row strong{display:block;color:var(--ink);font-size:14px}
+.sound-option-row small{display:block;margin-top:4px;color:var(--muted);font-size:12px;line-height:1.45}
+.sound-card-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-top:16px}
+.sound-card{
+  min-width:0;
+  padding:15px;
+  border-radius:17px;
+  border:1px solid #e2eaf7;
+  background:#f8fbff;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  gap:15px;
+}
+.sound-card.first-sound-card{background:linear-gradient(145deg,#fffaf0,#fff4d7);border-color:#f3dfad}
+.sound-card.win-sound-card{background:linear-gradient(145deg,#f2f8ff,#e8f3ff);border-color:#d4e6fb}
+.sound-card.lose-sound-card{background:linear-gradient(145deg,#f8f7fb,#efedf5);border-color:#e0dce8}
+.sound-card label{display:flex;align-items:flex-start;gap:10px;margin:0!important;cursor:pointer}
+.sound-card label>input{width:18px;height:18px;margin-top:2px;accent-color:var(--blue-deep)}
+.sound-card label>span{display:block;min-width:0}
+.sound-card label strong{display:block;color:var(--ink);font-size:15px}
+.sound-card label small{display:block;margin-top:4px;color:var(--muted);font-size:12px}
+.sound-card .btn{width:100%}
+.sound-test-status{
+  margin:13px 0 0!important;
+  padding:10px 12px;
+  border-radius:12px;
+  color:var(--muted)!important;
+  background:#f4f7fc;
+  border:1px solid #e5ebf5;
+  font-size:12px!important;
+  font-weight:750;
+}
+.sound-test-status.ok{color:#218b58!important;background:#eefaf3;border-color:#ccebd9}
+.sound-test-status.error{color:#bd4053!important;background:#fff1f3;border-color:#f0c7ce}
+.sound-guide-box{
+  margin:18px 0 24px;
+  padding:17px 18px!important;
+  border:1px dashed #cbdaf0!important;
+  border-radius:16px;
+  background:#f7faff;
+}
+.sound-guide-box h3{margin-bottom:7px!important}
+.sound-guide-box p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+
+@media(max-width:720px){
+  .sound-volume-row{display:block}
+  .sound-volume-control{min-width:0;width:100%;margin-top:14px}
+  .sound-card-list{grid-template-columns:1fr}
+}
