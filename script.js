@@ -32,7 +32,7 @@ function formatNumber(n){return String(n).padStart(Math.max(3,String(state.setti
 function shuffle(a){const c=[...a];for(let i=c.length-1;i>0;i--){const j=crypto.getRandomValues(new Uint32Array(1))[0]%(i+1);[c[i],c[j]]=[c[j],c[i]]}return c}
 function currentTarget(){return state.queue.find(q=>q.remaining>0)||null}
 function buildBoard(){const s=state.settings,items=[];s.prizes.forEach((p,pi)=>{for(let i=0;i<Number(p.count);i++)items.push({type:"win",prizeIndex:pi,rank:p.rank,prize:p.prize,color:p.color,opened:false,openedAt:null,participant:""})});const loseCount=Math.max(0,Number(s.total)-items.length);for(let i=0;i<loseCount;i++)items.push({type:"lose",rank:"꽝",prize:s.loseText,color:"#9ba7b8",opened:false,openedAt:null,participant:""});state.board=shuffle(items);state.history=[];saveState();renderAll()}
-function renderAll(){renderHeader();renderPrizeList();renderBoard();renderHistory();renderQueue();renderSession();renderSyncStatus();renderBroadcastTopbar();renderBroadcastPrizeStrip()}
+function renderAll(){renderHeader();renderPrizeList();renderBoard();renderHistory();renderQueue();renderSession();renderSyncStatus();renderBroadcastTopbar();renderBroadcastPrizeStrip();renderBroadcastSidePanel()}
 function renderHeader(){const total=state.board.length||Number(state.settings.total)||0,opened=state.board.filter(x=>x.opened).length,remaining=state.board.length?total-opened:0,wins=state.board.filter(x=>x.type==="win"&&!x.opened).length,progress=total?Math.round(opened/total*100):0;$("#displayTitle").textContent=state.settings.title;$("#displaySubtitle").textContent=state.settings.subtitle;$("#totalCount").textContent=total;$("#remainingCount").textContent=remaining;$("#winningRemaining").textContent=wins;$("#progressText").textContent=`${progress}%`;$("#progressBar").style.width=`${progress}%`;document.title=state.settings.title}
 function renderPrizeList(){const list=$("#prizeList");list.innerHTML="";state.settings.prizes.forEach((p,i)=>{const total=Number(p.count)||0,opened=state.board.filter(x=>x.opened&&x.type==="win"&&x.prizeIndex===i).length,remaining=state.board.length?Math.max(0,total-opened):total;const el=document.createElement("div");el.className="prize-item";el.innerHTML=`<div class="prize-rank" style="--rank-color:${esc(p.color)}">${esc(p.rank)}</div><div class="prize-info"><strong>${esc(p.prize)}</strong><span>총 ${total}개</span></div><div class="prize-count">${remaining}개</div>`;list.appendChild(el)});const wt=state.settings.prizes.reduce((a,p)=>a+(Number(p.count)||0),0),lt=Math.max(0,state.settings.total-wt),lo=state.board.filter(x=>x.opened&&x.type==="lose").length,lr=state.board.length?Math.max(0,lt-lo):lt;list.insertAdjacentHTML("beforeend",`<div class="prize-item lose-summary"><div class="prize-rank" style="--rank-color:#9ba7b8">꽝</div><div class="prize-info"><strong>${esc(state.settings.loseText)}</strong><span>나머지 칸 자동 배치</span></div><div class="prize-count">${lr}개</div></div>`)}
 function renderBoard(){const b=$("#drawBoard"),e=$("#boardEmpty");b.innerHTML="";if(!state.board.length){b.classList.add("hidden");e.classList.remove("hidden");return}b.classList.remove("hidden");e.classList.add("hidden");const columns=Math.max(1,Number(state.settings.columns)||10),rows=Math.max(1,Math.ceil(state.board.length/columns));b.style.setProperty("--board-columns",columns);b.style.setProperty("--board-rows",rows);state.board.forEach((item,i)=>{const btn=document.createElement("button");btn.className="draw-tile";if(item.opened){btn.classList.add("opened");btn.disabled=true;btn.style.setProperty("--tile-color",item.color||"#72beff");if(item.type==="lose")btn.classList.add("lose");btn.innerHTML=`<span class="tile-number">${item.type==="win"?`${esc(item.rank)}<br>${esc(item.prize)}`:esc(item.prize)}</span>`}else{btn.innerHTML=`<span class="tile-number">${formatNumber(i+1)}</span>`;if(!IS_BROADCAST_VIEW)btn.addEventListener("click",()=>openConfirm(i));else btn.disabled=true}b.appendChild(btn)})}
@@ -195,6 +195,7 @@ async function copyBroadcastUrl(){
 }
 function renderBroadcastPrizeStrip(){
   const strip=$("#broadcastPrizeStrip");if(!strip)return;
+  if(IS_BROADCAST_VIEW){strip.innerHTML="";return}
   const prizes=Array.isArray(state.settings.prizes)?state.settings.prizes:[];
   strip.innerHTML=prizes.map((p,i)=>{
     const total=Math.max(0,Number(p.count)||0);
@@ -202,6 +203,25 @@ function renderBroadcastPrizeStrip(){
     const remaining=state.board.length?Math.max(0,total-opened):total;
     return `<div class="broadcast-prize-chip" style="--chip-color:${esc(p.color||"#72beff")}"><span>${esc(p.rank)}</span><strong>${remaining}개 남음</strong></div>`;
   }).join("");
+}
+function renderBroadcastSidePanel(){
+  const panel=$("#broadcastSidePanel"),list=$("#broadcastPrizePanelList"),title=$("#broadcastSideTitle");
+  if(!panel||!list||!title)return;
+  title.textContent=state.settings.title||"제리츄 뽑기판";
+  if(!IS_BROADCAST_VIEW){panel.classList.add("hidden");list.innerHTML="";return}
+  panel.classList.remove("hidden");
+  const prizes=Array.isArray(state.settings.prizes)?state.settings.prizes:[];
+  list.innerHTML=prizes.map((p,i)=>{
+    const total=Math.max(0,Number(p.count)||0);
+    const opened=state.board.filter(x=>x.opened&&x.type==="win"&&Number(x.prizeIndex)===i).length;
+    const remaining=state.board.length?Math.max(0,total-opened):total;
+    const soldOut=remaining<=0;
+    return `<div class="broadcast-side-item ${soldOut?"soldout":""}" style="--panel-rank-color:${esc(p.color||"#72beff")}">
+      <div class="broadcast-side-rank">${esc(p.rank)}</div>
+      <div class="broadcast-side-copy"><strong>${esc(p.prize)}</strong><small>${soldOut?"SOLD OUT":`${remaining}개 남음`}</small></div>
+      <div class="broadcast-side-count">${remaining}</div>
+    </div>`;
+  }).join("") || `<div class="broadcast-side-empty">표시할 당첨 항목이 없습니다.</div>`;
 }
 
 function renderBroadcastTopbar(){
