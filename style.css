@@ -1430,3 +1430,59 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
     font-size:clamp(7px,1.95vmin,10px)!important;
   }
 }
+
+
+/* =========================================================
+ * V4.7 Dekko + Gaegu 손글씨 폰트
+ * 영문/숫자: Dekko / 한글: Gaegu
+ * ======================================================= */
+:root{
+  --jerry-hand-font:"Dekko","Gaegu","Pretendard","Noto Sans KR",sans-serif;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea{
+  font-family:var(--jerry-hand-font);
+}
+
+body{
+  letter-spacing:.005em;
+}
+
+.hero h1,
+.modal h2,
+.section-heading h2,
+.section-heading h3,
+.session-copy h2,
+.board-topline h2,
+#broadcastTitle,
+#broadcastSideTitle{
+  font-family:var(--jerry-hand-font);
+  letter-spacing:-.015em;
+}
+
+.draw-tile .tile-number,
+.confirm-number,
+.stat-card strong,
+.prize-count,
+.queue-draws,
+.summary-box strong,
+.broadcast-prize-chip,
+.broadcast-side-count{
+  font-family:var(--jerry-hand-font);
+  font-variant-numeric:normal;
+}
+
+.draw-tile .tile-number{
+  letter-spacing:.01em;
+}
+
+body.broadcast-mode .draw-tile .tile-number,
+body.broadcast-mode .draw-tile.opened .tile-number{
+  font-family:var(--jerry-hand-font);
+  font-weight:700;
+}

@@ -29,7 +29,7 @@ function normalizeState(saved){const base=newState();return{settings:{...base.se
 function loadState(){try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));return saved?normalizeState(saved):newState()}catch{return newState()}}
 function saveState(){if(!IS_BROADCAST_VIEW)localStorage.setItem(STORAGE_KEY,JSON.stringify(state));if(!IS_BROADCAST_VIEW)scheduleBroadcastPublish()}
 function esc(v=""){return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-function formatNumber(n){return String(n).padStart(Math.max(3,String(state.settings.total).length),"0")}
+function formatNumber(n){return String(n)}
 function shuffle(a){const c=[...a];for(let i=c.length-1;i>0;i--){const j=crypto.getRandomValues(new Uint32Array(1))[0]%(i+1);[c[i],c[j]]=[c[j],c[i]]}return c}
 function currentTarget(){return state.queue.find(q=>q.remaining>0)||null}
 function buildBoard(){const s=state.settings,items=[];s.prizes.forEach((p,pi)=>{for(let i=0;i<Number(p.count);i++)items.push({type:"win",prizeIndex:pi,rank:p.rank,prize:p.prize,color:p.color,opened:false,openedAt:null,participant:""})});const loseCount=Math.max(0,Number(s.total)-items.length);for(let i=0;i<loseCount;i++)items.push({type:"lose",rank:"꽝",prize:s.loseText,color:"#9ba7b8",opened:false,openedAt:null,participant:""});state.board=shuffle(items);state.history=[];saveState();renderAll()}
