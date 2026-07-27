@@ -1,6 +1,7 @@
 const STORAGE_KEY = "jerrychuDrawBoardGithubV3";
 const PAGE_PARAMS = new URLSearchParams(location.search);
 const IS_BROADCAST_VIEW = PAGE_PARAMS.get("view") === "broadcast";
+const BROADCAST_LAYOUT = PAGE_PARAMS.get("layout") === "mini" ? "mini" : "full";
 const BROADCAST_CHUNK_SIZE = 20;
 const BROADCAST_FAST_POLL_MS = 650;
 const BROADCAST_IDLE_POLL_MS = 1200;
@@ -171,11 +172,11 @@ async function publishBroadcastStateLegacy(snap,force=false){
   }
   await Promise.all(jobs)
 }
-async function copyBroadcastUrl(){
+async function copyBroadcastUrl(layout="full"){
   const s=state.settings.integration||{};
   if(!s.execUrl||!s.token){alert("관리 설정 → SOOP 연동에서 Apps Script 주소와 연동 토큰을 먼저 저장해 주세요.");return}
-  const btn=$("#copyBroadcastUrlBtn");
-  btn.disabled=true;btn.textContent="주소 준비 중...";
+  const btn=layout==="mini"?$("#copyMiniBroadcastUrlBtn"):$("#copyBroadcastUrlBtn");
+  btn.disabled=true;const originalText=btn.textContent;btn.textContent="주소 준비 중...";
   try{
     const data=await fetchJson(apiUrl("drawBroadcastKey",{bjId:s.bjId||""}));
     if(!data.ok)throw new Error(data.message||"송출 키 생성 실패");
@@ -185,13 +186,14 @@ async function copyBroadcastUrl(){
     await publishBroadcastState(true);
     const url=new URL(location.href);url.search="";url.hash="";
     url.searchParams.set("view","broadcast");
+    if(layout==="mini")url.searchParams.set("layout","mini");
     url.searchParams.set("api",s.execUrl);
     url.searchParams.set("bjId",data.bjId);
     url.searchParams.set("key",data.key);
     const text=url.toString();
     try{await navigator.clipboard.writeText(text)}catch{const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove()}
-    alert("송출용 주소를 복사했습니다.\nOBS 브라우저 소스의 URL에 붙여넣어 주세요.")
-  }catch(e){alert(`송출 주소 생성 실패: ${e.message}`)}finally{btn.disabled=false;btn.textContent="📺 송출 주소 복사"}
+    alert(`${layout==="mini"?"미니":"전체"} 송출용 주소를 복사했습니다.\nOBS 브라우저 소스의 URL에 붙여넣어 주세요.`)
+  }catch(e){alert(`송출 주소 생성 실패: ${e.message}`)}finally{btn.disabled=false;btn.textContent=originalText}
 }
 function renderBroadcastPrizeStrip(){
   const strip=$("#broadcastPrizeStrip");if(!strip)return;
@@ -307,14 +309,16 @@ async function loadBroadcastState(){
   }
 }
 function initializeBroadcastView(){
-  document.body.classList.add("broadcast-mode");document.title="제리츄 뽑기판 · 송출 화면";
+  document.body.classList.add("broadcast-mode");
+  if(BROADCAST_LAYOUT==="mini")document.body.classList.add("broadcast-mini");
+  document.title=`제리츄 뽑기판 · ${BROADCAST_LAYOUT==="mini"?"미니 ":""}송출 화면`;
   $("#broadcastTopbar")?.classList.remove("hidden");
   renderAll();
   clearTimeout(broadcastPollTimer);
   loadBroadcastState()
 }
 
-$("#confirmDrawBtn").onclick=performDraw;$("#copyBroadcastUrlBtn").onclick=copyBroadcastUrl;$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
+$("#confirmDrawBtn").onclick=performDraw;$("#copyBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("full");$("#copyMiniBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("mini");$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
 $("#manualQueueBtn").onclick=()=>openModal("manualQueueModal");$("#manualQueueAddBtn").onclick=()=>{const n=$("#manualNickname").value.trim(),d=$("#manualDraws").value,m=$("#manualMemo").value.trim();if(addQueueEntry({nickname:n,draws:d,memo:m})){closeModal("manualQueueModal");$("#manualNickname").value="";$("#manualDraws").value=1;$("#manualMemo").value=""}};
 $("#targetMinusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining=Math.max(0,c.remaining-1);saveState();renderQueue()}};$("#targetPlusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining++;c.total++;saveState();renderQueue()}};$("#targetSkipBtn").onclick=()=>{const c=currentTarget();if(c){state.queue=state.queue.filter(x=>x.id!==c.id);state.queue.push(c);saveState();renderQueue()}};$("#targetRemoveBtn").onclick=()=>{const c=currentTarget();if(c&&confirm(`${c.nickname} 님을 대기열에서 삭제할까요?`)){state.queue=state.queue.filter(x=>x.id!==c.id);saveState();renderQueue()}};
 function updateSettingsFooter(tabId){const scroll=$(".settings-scroll"),save=$("#saveSettingsBtn"),generate=$("#generateBoardBtn");if(scroll)scroll.scrollTop=0;if(tabId==="soopSettings"){save.textContent="연동 설정 저장";generate.classList.add("hidden")}else if(tabId==="soundSettings"){save.textContent="효과음 설정 저장";generate.classList.add("hidden")}else{save.textContent="설정만 저장";generate.classList.remove("hidden")}}

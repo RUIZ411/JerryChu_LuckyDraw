@@ -943,3 +943,146 @@ body.broadcast-mode .broadcast-side-item.soldout{
     font-size:clamp(6px,1.6vw,8px)!important;
   }
 }
+
+/* =========================================================
+ * V4.2 미니 송출 전용 레이아웃
+ * 권장 OBS 브라우저 크기: 560 x 500
+ * ======================================================= */
+.mini-broadcast-copy{
+  background:linear-gradient(135deg,#8f82ff,#6f73e8)!important;
+  color:#fff!important;
+  border-color:transparent!important;
+}
+body.broadcast-mode.broadcast-mini{
+  background:transparent;
+}
+body.broadcast-mode.broadcast-mini .page-shell{
+  padding:4px;
+}
+body.broadcast-mode.broadcast-mini .content-grid{
+  grid-template-columns:minmax(0,60fr) minmax(0,40fr)!important;
+  gap:6px!important;
+}
+body.broadcast-mode.broadcast-mini .board-area{
+  padding:5px!important;
+  border-radius:12px!important;
+}
+body.broadcast-mode.broadcast-mini .draw-board{
+  gap:2px!important;
+}
+body.broadcast-mode.broadcast-mini .draw-tile{
+  border-radius:6px!important;
+  box-shadow:inset 0 0 0 1px rgba(218,229,245,.9),0 1px 3px rgba(90,111,155,.08)!important;
+}
+body.broadcast-mode.broadcast-mini .draw-tile::before{
+  inset:2px!important;
+  border-radius:4px!important;
+}
+body.broadcast-mode.broadcast-mini .draw-tile::after{
+  width:9px!important;
+  height:9px!important;
+  right:-3px!important;
+  top:-3px!important;
+}
+body.broadcast-mode.broadcast-mini .draw-tile .tile-number{
+  font-size:clamp(9px,2.15vmin,15px)!important;
+  letter-spacing:-.01em!important;
+}
+body.broadcast-mode.broadcast-mini .draw-tile.opened .tile-number{
+  padding:1px!important;
+  font-size:clamp(6px,1.55vmin,10px)!important;
+  line-height:1.04!important;
+}
+body.broadcast-mode.broadcast-mini #broadcastSidePanel{
+  padding:7px!important;
+  border-radius:12px!important;
+  background:linear-gradient(180deg,rgba(255,253,248,.98),rgba(248,242,231,.98))!important;
+  border:1px solid rgba(226,212,190,.95)!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-header{
+  padding:1px 2px 6px!important;
+  margin-bottom:6px!important;
+  border-bottom:1px dashed #cebda8!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-header .mini-label{
+  display:none!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-header h2{
+  font-size:clamp(14px,3.5vmin,22px)!important;
+  color:#6c5a4c!important;
+  letter-spacing:-.045em!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-header p{
+  display:none!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-prize-panel-list{
+  gap:4px!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-item{
+  gap:5px!important;
+  padding:3px 5px 3px 7px!important;
+  border-radius:9px!important;
+  border-color:#eadfd1!important;
+  box-shadow:0 2px 6px rgba(114,91,68,.06)!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-item::before{
+  top:4px!important;
+  bottom:4px!important;
+  width:3px!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-rank{
+  min-width:32px!important;
+  height:22px!important;
+  padding:0 6px!important;
+  margin-left:1px!important;
+  font-size:clamp(9px,2.1vmin,13px)!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-copy strong{
+  font-size:clamp(9px,2.05vmin,13px)!important;
+  color:#65594f!important;
+  line-height:1.08!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-count{
+  min-width:28px!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-count b{
+  font-size:clamp(12px,2.65vmin,17px)!important;
+}
+body.broadcast-mode.broadcast-mini .broadcast-side-count small,
+body.broadcast-mode.broadcast-mini .soldout-label{
+  font-size:clamp(6px,1.5vmin,9px)!important;
+}
+
+/* 미니 소스에서 결과 팝업이 화면 전체를 가리지 않도록 축소 */
+body.broadcast-mode.broadcast-mini .result-modal{
+  width:min(78vw,280px)!important;
+  max-height:88vh!important;
+  padding:14px!important;
+  border-radius:18px!important;
+}
+body.broadcast-mode.broadcast-mini .result-character-wrap{
+  width:72px!important;
+  height:72px!important;
+  border-radius:17px!important;
+  margin-bottom:4px!important;
+}
+body.broadcast-mode.broadcast-mini .result-emoji{
+  font-size:30px!important;
+}
+body.broadcast-mode.broadcast-mini .result-rank{
+  padding:4px 10px!important;
+  font-size:12px!important;
+}
+body.broadcast-mode.broadcast-mini .result-modal h2{
+  font-size:21px!important;
+  margin:6px 0 2px!important;
+}
+body.broadcast-mode.broadcast-mini .result-modal p{
+  font-size:12px!important;
+  margin:4px 0!important;
+}
+body.broadcast-mode.broadcast-mini .result-meta{
+  margin:8px 0 0!important;
+  padding:7px!important;
+  font-size:10px!important;
+}
