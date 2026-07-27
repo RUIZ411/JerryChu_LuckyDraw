@@ -1433,11 +1433,11 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
 
 
 /* =========================================================
- * V4.7 Dekko + Gaegu 손글씨 폰트
- * 영문/숫자: Dekko / 한글: Gaegu
+ * V4.8 Dekko + SUITE 폰트
+ * 영문/숫자: Dekko / 한글: SUITE
  * ======================================================= */
 :root{
-  --jerry-hand-font:"Dekko","Gaegu","Pretendard","Noto Sans KR",sans-serif;
+  --jerry-hand-font:"Dekko","SUITE","Pretendard","Noto Sans KR",sans-serif;
 }
 
 html,
