@@ -238,7 +238,7 @@ function applyBroadcastData(data){
     lastBroadcastResultId=result.id;
     if(age>=0&&age<12000){
       showResult({type:result.type,prizeIndex:result.prizeIndex,rank:result.rank,prize:result.prize,color:result.color},Number(result.index)||0,result.participant||"이름 없음");
-      clearTimeout(broadcastResultTimer);broadcastResultTimer=setTimeout(()=>closeModal("resultModal"),6500)
+      clearTimeout(broadcastResultTimer);broadcastResultTimer=setTimeout(()=>closeModal("resultModal"),1600)
     }
   }
 }
