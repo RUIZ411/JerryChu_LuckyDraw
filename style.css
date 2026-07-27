@@ -1642,3 +1642,152 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
     font-size:clamp(8px,2.25vmin,11px)!important;
   }
 }
+
+
+/* =========================================================
+ * V5.0 하단 남은 당첨 개수 영역 꾸미기
+ * 형식: 1등 / 상품명 / 몇개 남음
+ * ======================================================= */
+body.broadcast-mode .board-area,
+body.broadcast-mode.broadcast-mini .board-area{
+  gap:4px!important;
+}
+
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  gap:4px!important;
+  padding:1px 2px 2px!important;
+}
+
+body.broadcast-mode .broadcast-prize-row,
+body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+  flex:0 0 38px!important;
+  height:38px!important;
+  min-height:38px!important;
+  max-height:38px!important;
+  gap:4px!important;
+  justify-content:center!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+  min-width:0!important;
+  height:38px!important;
+  min-height:38px!important;
+  max-height:38px!important;
+  padding:4px 6px 4px 8px!important;
+  border-radius:8px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:stretch!important;
+  gap:2px!important;
+  background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(245,250,255,.96))!important;
+  border:1px solid rgba(205,220,245,.95)!important;
+  box-shadow:0 2px 8px rgba(84,112,156,.10)!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip::before,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+  width:3px!important;
+  border-radius:99px!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-top,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-top{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:4px!important;
+  min-width:0!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-rank,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-rank{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:28px!important;
+  padding:1px 5px!important;
+  border-radius:999px!important;
+  background:color-mix(in srgb, var(--chip-color) 16%, white)!important;
+  color:var(--chip-color)!important;
+  font-size:clamp(9px,1.75vmin,13px)!important;
+  font-weight:900!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  flex:0 0 auto!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-count,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-count{
+  color:#516887!important;
+  font-size:clamp(9px,1.75vmin,13px)!important;
+  font-weight:900!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  flex:0 0 auto!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip .chip-prize,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+  display:block!important;
+  color:#7389a8!important;
+  font-style:normal!important;
+  font-size:clamp(8px,1.55vmin,12px)!important;
+  font-weight:700!important;
+  line-height:1.05!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip.soldout,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip.soldout{
+  opacity:.55!important;
+  filter:saturate(.75)!important;
+}
+
+@media (max-width:340px), (max-height:430px){
+  body.broadcast-mode .board-area,
+  body.broadcast-mode.broadcast-mini .board-area{
+    gap:2px!important;
+  }
+  body.broadcast-mode #broadcastPrizeStrip,
+  body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+    gap:2px!important;
+    padding:0 1px 1px!important;
+  }
+  body.broadcast-mode .broadcast-prize-row,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+    flex-basis:28px!important;
+    height:28px!important;
+    min-height:28px!important;
+    max-height:28px!important;
+    gap:2px!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+    height:28px!important;
+    min-height:28px!important;
+    max-height:28px!important;
+    padding:2px 4px 2px 5px!important;
+    border-radius:5px!important;
+    gap:1px!important;
+    box-shadow:none!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip .chip-rank,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-rank{
+    min-width:22px!important;
+    padding:1px 3px!important;
+    font-size:clamp(7px,1.95vmin,10px)!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip .chip-count,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-count{
+    font-size:clamp(7px,1.95vmin,10px)!important;
+  }
+  body.broadcast-mode .broadcast-prize-chip .chip-prize,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+    font-size:clamp(6px,1.7vmin,9px)!important;
+  }
+}

@@ -207,7 +207,7 @@ function renderBroadcastPrizeStrip(){
       const total=Math.max(0,Number(p.count)||0);
       const opened=state.board.filter(x=>x.opened&&x.type==="win"&&Number(x.prizeIndex)===i).length;
       const remaining=state.board.length?Math.max(0,total-opened):total;
-      return `<div class="broadcast-prize-chip ${remaining<=0?"soldout":""}" style="--chip-color:${esc(p.color||"#72beff")}"><span>${esc(p.rank)}</span><strong>${remaining}개</strong></div>`;
+      return `<div class="broadcast-prize-chip ${remaining<=0?"soldout":""}" style="--chip-color:${esc(p.color||"#72beff")}"><div class="chip-top"><span class="chip-rank">${esc(p.rank)}</span><strong class="chip-count">${remaining}개</strong></div><em class="chip-prize">${esc(p.prize||"")}</em></div>`;
     }).join("");
     rows.push(`<div class="broadcast-prize-row">${row}</div>`);
   }
