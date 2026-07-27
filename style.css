@@ -2137,3 +2137,33 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
     font-size:clamp(10px,3.2vmin,14px)!important;
   }
 }
+
+/* =========================================================
+ * V5.5 한글 상품명 윗부분 잘림 보정
+ * ======================================================= */
+body.broadcast-mode .broadcast-prize-chip .chip-prize,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+  line-height:1.18!important;
+  padding-top:1px!important;
+  padding-bottom:1px!important;
+  display:flex!important;
+  align-items:flex-start!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+  padding-top:6px!important;
+}
+
+@media (max-width:340px), (max-height:430px){
+  body.broadcast-mode .broadcast-prize-chip .chip-prize,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+    line-height:1.16!important;
+    padding-top:1px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+    padding-top:4px!important;
+  }
+}
