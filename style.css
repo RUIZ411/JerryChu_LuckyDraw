@@ -1486,3 +1486,159 @@ body.broadcast-mode .draw-tile.opened .tile-number{
   font-family:var(--jerry-hand-font);
   font-weight:700;
 }
+
+/* =========================================================
+ * V4.9 작은 송출 창 가독성 강화
+ * 기준: 589x720 / 300x400 근처에서도 숫자와 하단 잔여 수량 가독성 향상
+ * ======================================================= */
+body.broadcast-mode .board-area,
+body.broadcast-mode.broadcast-mini .board-area{
+  padding:2px!important;
+  gap:3px!important;
+  grid-template-rows:minmax(0,1fr) auto!important;
+}
+
+body.broadcast-mode .draw-board,
+body.broadcast-mode.broadcast-mini .draw-board{
+  gap:2px!important;
+}
+
+body.broadcast-mode .draw-tile,
+body.broadcast-mode.broadcast-mini .draw-tile{
+  border-radius:6px!important;
+}
+
+body.broadcast-mode .draw-tile::before,
+body.broadcast-mode.broadcast-mini .draw-tile::before{
+  inset:2px!important;
+  border-radius:4px!important;
+}
+
+body.broadcast-mode .draw-tile .tile-number,
+body.broadcast-mode.broadcast-mini .draw-tile .tile-number{
+  font-size:clamp(12px,2.55vmin,21px)!important;
+  line-height:1!important;
+  letter-spacing:0!important;
+  font-weight:700!important;
+  color:#4e6486!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.55)!important;
+}
+
+body.broadcast-mode .draw-tile.opened .tile-number,
+body.broadcast-mode.broadcast-mini .draw-tile.opened .tile-number{
+  font-size:clamp(10px,2.05vmin,15px)!important;
+  line-height:1.02!important;
+  padding:2px!important;
+  font-weight:800!important;
+}
+
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  gap:3px!important;
+  padding:0 1px 1px!important;
+}
+
+body.broadcast-mode .broadcast-prize-row,
+body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+  flex:0 0 28px!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  gap:3px!important;
+  justify-content:center!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  padding:2px 6px 2px 8px!important;
+  border-radius:6px!important;
+  gap:4px!important;
+  box-shadow:0 2px 6px rgba(84,112,156,.10)!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip::before,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip::before{
+  width:3px!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip span,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip span{
+  font-size:clamp(9px,1.7vmin,13px)!important;
+  line-height:1!important;
+  font-weight:800!important;
+}
+
+body.broadcast-mode .broadcast-prize-chip strong,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
+  font-size:clamp(10px,1.9vmin,14px)!important;
+  line-height:1!important;
+  font-weight:900!important;
+}
+
+@media (max-width:340px), (max-height:430px){
+  body.broadcast-mode .board-area,
+  body.broadcast-mode.broadcast-mini .board-area{
+    padding:1px!important;
+    gap:2px!important;
+  }
+
+  body.broadcast-mode .draw-board,
+  body.broadcast-mode.broadcast-mini .draw-board{
+    gap:1px!important;
+  }
+
+  body.broadcast-mode .draw-tile,
+  body.broadcast-mode.broadcast-mini .draw-tile{
+    border-radius:4px!important;
+  }
+
+  body.broadcast-mode .draw-tile::before,
+  body.broadcast-mode.broadcast-mini .draw-tile::before{
+    inset:1px!important;
+    border-radius:3px!important;
+  }
+
+  body.broadcast-mode .draw-tile .tile-number,
+  body.broadcast-mode.broadcast-mini .draw-tile .tile-number{
+    font-size:clamp(10px,2.9vmin,13px)!important;
+  }
+
+  body.broadcast-mode .draw-tile.opened .tile-number,
+  body.broadcast-mode.broadcast-mini .draw-tile.opened .tile-number{
+    font-size:clamp(8px,2.35vmin,11px)!important;
+    padding:1px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-row,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-row{
+    flex-basis:22px!important;
+    height:22px!important;
+    min-height:22px!important;
+    max-height:22px!important;
+    gap:2px!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
+    height:22px!important;
+    min-height:22px!important;
+    max-height:22px!important;
+    padding:1px 4px 1px 6px!important;
+    border-radius:5px!important;
+    gap:3px!important;
+    box-shadow:none!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip span,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip span{
+    font-size:clamp(7px,2vmin,10px)!important;
+  }
+
+  body.broadcast-mode .broadcast-prize-chip strong,
+  body.broadcast-mode.broadcast-mini .broadcast-prize-chip strong{
+    font-size:clamp(8px,2.25vmin,11px)!important;
+  }
+}
