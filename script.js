@@ -2,11 +2,17 @@ const STORAGE_KEY = "jerrychuDrawBoardGithubV3";
 const PAGE_PARAMS = new URLSearchParams(location.search);
 const IS_BROADCAST_VIEW = PAGE_PARAMS.get("view") === "broadcast";
 const BROADCAST_CHUNK_SIZE = 20;
+const BROADCAST_FAST_POLL_MS = 650;
+const BROADCAST_IDLE_POLL_MS = 1200;
 let broadcastPollTimer = null;
 let broadcastPublishTimer = null;
 let broadcastPublishing = false;
+let broadcastPublishQueued = false;
+let broadcastFastMode = true;
+let broadcastPollRunning = false;
 let broadcastMetaHash = "";
 let broadcastChunkHashes = [];
+let lastBroadcastRevision = "";
 let lastBroadcastResultId = "";
 let broadcastResultTimer = null;
 const defaultSettings = {
@@ -34,7 +40,7 @@ function renderHistory(){const h=$("#recentHistory");if(!state.history.length){h
 function renderQueue(){state.queue=state.queue.filter(q=>q.remaining>0);const cur=currentTarget(),card=$("#currentTargetCard"),actions=$("#currentTargetActions"),list=$("#drawQueueList");$("#queueCountBadge").textContent=`${state.queue.length}명`;if(cur){card.classList.remove("empty-target");card.innerHTML=`<div class="target-avatar"><img src="assets/mascot-character.png" alt="캐릭터"></div><div class="target-info"><span>${cur.source==="soop"?`별풍선 ${Number(cur.balloonCount||0).toLocaleString()}개`:"수동 등록"}</span><strong>${esc(cur.nickname)} · 남은 ${cur.remaining}회</strong><small>${esc(cur.memo||cur.kindLabel||"번호를 선택하면 자동으로 1회 차감됩니다.")}</small></div>`;actions.classList.remove("hidden");$("#participantName").value=cur.nickname}else{card.classList.add("empty-target");card.innerHTML=`<div class="target-avatar"><img src="assets/mascot-character.png" alt="캐릭터"></div><div class="target-info"><span>대기 중</span><strong>등록된 뽑기 대상이 없습니다.</strong><small>직접 이름을 입력하거나 SOOP 연동으로 불러오세요.</small></div>`;actions.classList.add("hidden")}
 if(!state.queue.length){list.innerHTML=`<div class="empty-state">대기 중인 후원이 없습니다.</div>`}else list.innerHTML=state.queue.map((q,i)=>`<div class="queue-item ${i===0?"active":""}"><div class="queue-index">${i+1}</div><div class="queue-name"><strong>${esc(q.nickname)}</strong><span>${q.source==="soop"?`${Number(q.balloonCount||0).toLocaleString()}개 · ${esc(q.kindLabel||"")}`:esc(q.memo||"수동 등록")}</span></div><div class="queue-draws">${q.remaining}회</div></div>`).join("");saveState()}
 function openConfirm(i){if(!state.board[i]||state.board[i].opened)return;pendingIndex=i;$("#confirmNumber").textContent=formatNumber(i+1);const cur=currentTarget(),name=cur?.nickname||$("#participantName").value.trim()||"이름 없음";$("#confirmParticipant").textContent=`주인공: ${name}${cur?` · 남은 ${cur.remaining}회`:""}`;openModal("confirmModal")}
-function performDraw(){if(pendingIndex===null)return;const item=state.board[pendingIndex];if(!item||item.opened){closeModal("confirmModal");return}const cur=currentTarget(),name=cur?.nickname||$("#participantName").value.trim()||"이름 없음";item.opened=true;item.openedAt=new Date().toISOString();item.participant=name;const time=new Intl.DateTimeFormat("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date());state.history.push({number:formatNumber(pendingIndex+1),participant:name,result:item.type==="win"?`${item.rank} · ${item.prize}`:item.prize,type:item.type,time});state.lastResult={id:crypto.randomUUID(),at:new Date().toISOString(),index:pendingIndex,participant:name,type:item.type,prizeIndex:item.prizeIndex,rank:item.rank,prize:item.prize,color:item.color};if(cur){cur.remaining=Math.max(0,cur.remaining-1);cur.used=(cur.used||0)+1}saveState();closeModal("confirmModal");showResult(item,pendingIndex,name);pendingIndex=null;renderAll()}
+function performDraw(){if(pendingIndex===null)return;const item=state.board[pendingIndex];if(!item||item.opened){closeModal("confirmModal");return}const cur=currentTarget(),name=cur?.nickname||$("#participantName").value.trim()||"이름 없음";item.opened=true;item.openedAt=new Date().toISOString();item.participant=name;const time=new Intl.DateTimeFormat("ko-KR",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date());state.history.push({number:formatNumber(pendingIndex+1),participant:name,result:item.type==="win"?`${item.rank} · ${item.prize}`:item.prize,type:item.type,time});state.lastResult={id:crypto.randomUUID(),at:new Date().toISOString(),index:pendingIndex,participant:name,type:item.type,prizeIndex:item.prizeIndex,rank:item.rank,prize:item.prize,color:item.color};if(cur){cur.remaining=Math.max(0,cur.remaining-1);cur.used=(cur.used||0)+1}saveState();scheduleBroadcastPublish(true);closeModal("confirmModal");showResult(item,pendingIndex,name);pendingIndex=null;renderAll()}
 const SOUND_PATHS={first:"assets/sounds/first-prize.wav",win:"assets/sounds/win.wav",lose:"assets/sounds/lose.wav"};
 const soundPlayers=Object.create(null);
 function getSoundPlayer(key){if(!SOUND_PATHS[key])return null;if(!soundPlayers[key]){const audio=new Audio(SOUND_PATHS[key]);audio.preload="auto";soundPlayers[key]=audio}return soundPlayers[key]}
@@ -56,6 +62,8 @@ function renderSession(){const s=state.session||{},dot=$("#sessionStatusDot"),ti
 function renderSyncStatus(mode){const s=state.settings.integration,session=state.session||{},d=$("#syncStatusDot"),t=$("#syncStatusText");d.className="status-dot ";if(!s.enabled){d.classList.add("off");t.textContent="사용 안 함";return}if(!session.active){d.classList.add("off");t.textContent="시작 대기";return}if(mode==="syncing"||syncing){d.classList.add("syncing");t.textContent="확인 중"}else if(mode==="error"){d.classList.add("error");t.textContent="연결 오류"}else{d.classList.add("ok");t.textContent="후원 수신 중"}}
 function apiUrl(action,extra={}){const base=state.settings.integration.execUrl.trim();if(!base)return"";const u=new URL(base);u.searchParams.set("action",action);u.searchParams.set("token",state.settings.integration.token||"");Object.entries(extra).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=="")u.searchParams.set(k,v)});u.searchParams.set("_",Date.now());return u.toString()}
 async function fetchJson(url){const r=await fetch(url,{method:"GET",cache:"no-store",redirect:"follow"});if(!r.ok)throw new Error(`HTTP ${r.status}`);const text=await r.text();try{return JSON.parse(text)}catch{throw new Error("JSON 응답이 아닙니다.")}}
+async function postFormJson(url,fields){const body=new URLSearchParams();Object.entries(fields||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null)body.set(k,String(v))});const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},body:body.toString(),cache:"no-store",redirect:"follow"});if(!r.ok)throw new Error(`HTTP ${r.status}`);const text=await r.text();try{return JSON.parse(text)}catch{throw new Error("JSON 응답이 아닙니다.")}}
+function isUnsupportedActionResponse(data){return Boolean(data&&data.ok===false&&String(data.message||"").includes("지원하지 않는 action"))}
 async function testConnection(useDraft=true){const el=$("#connectionTestResult");try{if(useDraft){const draft=getDraftIntegration();if(!draft.execUrl)throw new Error("Apps Script 주소를 입력해 주세요.");const u=new URL(draft.execUrl);u.searchParams.set("action","drawPing");u.searchParams.set("token",draft.token||"");u.searchParams.set("bjId",draft.bjId||"");u.searchParams.set("_",Date.now());el.textContent="연결 확인 중...";el.className="connection-result";const data=await fetchJson(u.toString());if(!data.ok)throw new Error(data.message||"연결 실패")}else{const data=await fetchJson(apiUrl("drawPing"));if(!data.ok)throw new Error(data.message||"연결 실패")}el.textContent="Apps Script 연결 확인 완료";el.className="connection-result ok";return true}catch(e){el.textContent=`연결 실패: ${e.message}`;el.className="connection-result error";return false}}
 async function syncGifts(){const s=state.settings.integration,session=state.session||{};if(syncing||!s.enabled||!s.execUrl||!session.active)return;syncing=true;renderSyncStatus("syncing");try{const data=await fetchJson(apiUrl("drawEvents",{bjId:s.bjId||"",afterRow:Number(session.startRow)||1,sessionId:session.sessionId||""}));if(!data.ok)throw new Error(data.message||"수신 실패");for(const ev of (data.events||[])){const eventId=String(ev.eventId||"");if(!eventId)continue;if(state.importedEventIds.includes(eventId)){await acknowledgeEvent(eventId,"queued");continue}if(!eventAllowed(ev,s)){await acknowledgeEvent(eventId,"ignored");state.importedEventIds.push(eventId);continue}const draws=calculateDraws(ev.count,s);if(draws>0){addQueueEntry({nickname:ev.nickname||ev.userId||"익명",draws,source:"soop",balloonCount:ev.count,eventId,kind:ev.kind,memo:`${kindToLabel(ev.kind)} · 자동 지급 ${draws}회`})}else{state.importedEventIds.push(eventId)}await acknowledgeEvent(eventId,draws>0?"queued":"no_draw")}state.importedEventIds=[...new Set(state.importedEventIds)].slice(-3000);state.session.lastError="";saveState();renderAll();renderSyncStatus()}catch(e){console.error(e);state.session.lastError=e.message||String(e);saveState();renderSyncStatus("error")}finally{syncing=false}}
 async function acknowledgeEvent(eventId,status){try{const d=await fetchJson(apiUrl("drawAck",{eventId,status}));return d.ok}catch{return false}}
@@ -102,32 +110,66 @@ function publicBroadcastSnapshot(){
 }
 function scheduleBroadcastPublish(force=false){
   if(IS_BROADCAST_VIEW||!state.broadcast?.key||!state.settings.integration?.execUrl||!state.settings.integration?.token)return;
+  if(broadcastPublishing){broadcastPublishQueued=true;return}
   clearTimeout(broadcastPublishTimer);
-  broadcastPublishTimer=setTimeout(()=>publishBroadcastState(force),force?40:350)
+  broadcastPublishTimer=setTimeout(()=>publishBroadcastState(force),force?10:25)
 }
 async function publishBroadcastState(force=false){
-  if(broadcastPublishing||IS_BROADCAST_VIEW||!state.broadcast?.key)return;
+  if(IS_BROADCAST_VIEW||!state.broadcast?.key)return;
+  if(broadcastPublishing){broadcastPublishQueued=true;return}
   broadcastPublishing=true;
+  broadcastPublishQueued=false;
   try{
     const snap=publicBroadcastSnapshot();
-    const meta={settings:snap.settings,history:snap.history,queue:snap.queue,session:snap.session,lastResult:snap.lastResult,stats:snap.stats,currentTarget:snap.currentTarget,updatedAt:snap.updatedAt};
-    const metaJson=JSON.stringify(meta),metaHash=simpleHash(metaJson),bjId=state.broadcast.bjId||state.settings.integration.bjId||"";
-    if(force||metaHash!==broadcastMetaHash){
-      const r=await fetchJson(apiUrl("drawBroadcastMeta",{bjId,key:state.broadcast.key,meta:metaJson}));
-      if(!r.ok)throw new Error(r.message||"송출 상태 저장 실패");
-      broadcastMetaHash=metaHash
+    const snapshotJson=JSON.stringify(snap);
+    const snapshotHash=simpleHash(snapshotJson);
+    if(!force&&snapshotHash===broadcastMetaHash)return;
+    const s=state.settings.integration||{};
+    const revision=`${Date.now()}-${crypto.randomUUID()}`;
+    if(broadcastFastMode){
+      const data=await postFormJson(s.execUrl,{
+        action:"drawBroadcastFastPush",token:s.token||"",bjId:state.broadcast.bjId||s.bjId||"",key:state.broadcast.key,
+        revision,snapshot:snapshotJson
+      });
+      if(isUnsupportedActionResponse(data)){
+        broadcastFastMode=false;
+        await publishBroadcastStateLegacy(snap,true)
+      }else if(!data.ok){
+        throw new Error(data.message||"고속 송출 상태 저장 실패")
+      }else{
+        lastBroadcastRevision=data.revision||revision;
+      }
+    }else{
+      await publishBroadcastStateLegacy(snap,force)
     }
-    const chunkCount=Math.max(1,Math.ceil(snap.board.length/BROADCAST_CHUNK_SIZE));
-    for(let i=0;i<chunkCount;i++){
-      const chunkJson=JSON.stringify(snap.board.slice(i*BROADCAST_CHUNK_SIZE,(i+1)*BROADCAST_CHUNK_SIZE));
-      const h=simpleHash(chunkJson);
-      if(force||broadcastChunkHashes[i]!==h){
-        const r=await fetchJson(apiUrl("drawBroadcastChunk",{bjId,key:state.broadcast.key,chunkIndex:i,chunk:chunkJson}));
+    broadcastMetaHash=snapshotHash;
+  }catch(e){
+    console.error("broadcast publish",e)
+  }finally{
+    broadcastPublishing=false;
+    if(broadcastPublishQueued){broadcastPublishQueued=false;scheduleBroadcastPublish(true)}
+  }
+}
+async function publishBroadcastStateLegacy(snap,force=false){
+  const meta={settings:snap.settings,history:snap.history,queue:snap.queue,session:snap.session,lastResult:snap.lastResult,stats:snap.stats,currentTarget:snap.currentTarget,updatedAt:snap.updatedAt};
+  const metaJson=JSON.stringify(meta),metaHash=simpleHash(metaJson),bjId=state.broadcast.bjId||state.settings.integration.bjId||"";
+  if(force||metaHash!==broadcastMetaHash){
+    const r=await fetchJson(apiUrl("drawBroadcastMeta",{bjId,key:state.broadcast.key,meta:metaJson}));
+    if(!r.ok)throw new Error(r.message||"송출 상태 저장 실패")
+  }
+  const chunkCount=Math.max(1,Math.ceil(snap.board.length/BROADCAST_CHUNK_SIZE));
+  const jobs=[];
+  for(let i=0;i<chunkCount;i++){
+    const chunkJson=JSON.stringify(snap.board.slice(i*BROADCAST_CHUNK_SIZE,(i+1)*BROADCAST_CHUNK_SIZE));
+    const h=simpleHash(chunkJson);
+    if(force||broadcastChunkHashes[i]!==h){
+      jobs.push(fetchJson(apiUrl("drawBroadcastChunk",{bjId,key:state.broadcast.key,chunkIndex:i,chunk:chunkJson})).then(r=>{
         if(!r.ok)throw new Error(r.message||"송출 보드 저장 실패");
         broadcastChunkHashes[i]=h
-      }
+      }))
     }
-  }catch(e){console.error("broadcast publish",e)}finally{broadcastPublishing=false}
+  }
+  await Promise.all(jobs)
 }
 async function copyBroadcastUrl(){
   const s=state.settings.integration||{};
@@ -200,17 +242,55 @@ function applyBroadcastData(data){
     }
   }
 }
+function applyBroadcastSnapshot(snapshot){
+  const safe=snapshot&&typeof snapshot==="object"?snapshot:{};
+  const {board,...meta}=safe;
+  applyBroadcastData({meta,board:Array.isArray(board)?board:[]})
+}
+function scheduleNextBroadcastPoll(delay){
+  clearTimeout(broadcastPollTimer);
+  broadcastPollTimer=setTimeout(loadBroadcastState,Math.max(250,Number(delay)||BROADCAST_FAST_POLL_MS))
+}
 async function loadBroadcastState(){
+  if(broadcastPollRunning)return;
+  broadcastPollRunning=true;
   const conn=$("#broadcastConnectionText");
+  let nextDelay=state.session?.active?BROADCAST_FAST_POLL_MS:BROADCAST_IDLE_POLL_MS;
   try{
+    if(broadcastFastMode){
+      const url=publicApiUrl("drawBroadcastFastRead",{since:lastBroadcastRevision});
+      if(!url)throw new Error("송출 주소 설정이 없습니다.");
+      const data=await fetchJson(url);
+      if(isUnsupportedActionResponse(data)){
+        broadcastFastMode=false
+      }else if(!data.ok){
+        throw new Error(data.message||"고속 송출 상태 조회 실패")
+      }else{
+        if(data.revision)lastBroadcastRevision=data.revision;
+        if(!data.unchanged&&data.snapshot)applyBroadcastSnapshot(data.snapshot);
+        if(conn){conn.textContent="실시간 연결";conn.className="ok"}
+        nextDelay=state.session?.active?BROADCAST_FAST_POLL_MS:BROADCAST_IDLE_POLL_MS;
+        return
+      }
+    }
     const url=publicApiUrl("drawBroadcastRead");if(!url)throw new Error("송출 주소 설정이 없습니다.");
-    const data=await fetchJson(url);if(!data.ok)throw new Error(data.message||"송출 상태 조회 실패");applyBroadcastData(data)
-  }catch(e){console.error(e);if(conn){conn.textContent="연결 오류";conn.className="error"}}
+    const data=await fetchJson(url);if(!data.ok)throw new Error(data.message||"송출 상태 조회 실패");applyBroadcastData(data);
+    nextDelay=1200
+  }catch(e){
+    console.error(e);
+    nextDelay=1600;
+    if(conn){conn.textContent="연결 오류";conn.className="error"}
+  }finally{
+    broadcastPollRunning=false;
+    scheduleNextBroadcastPoll(nextDelay)
+  }
 }
 function initializeBroadcastView(){
   document.body.classList.add("broadcast-mode");document.title="제리츄 뽑기판 · 송출 화면";
   $("#broadcastTopbar")?.classList.remove("hidden");
-  renderAll();loadBroadcastState();clearInterval(broadcastPollTimer);broadcastPollTimer=setInterval(loadBroadcastState,2000)
+  renderAll();
+  clearTimeout(broadcastPollTimer);
+  loadBroadcastState()
 }
 
 $("#confirmDrawBtn").onclick=performDraw;$("#copyBroadcastUrlBtn").onclick=copyBroadcastUrl;$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
