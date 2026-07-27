@@ -785,3 +785,161 @@ body.broadcast-mode .broadcast-side-empty{
   body.broadcast-mode .broadcast-side-copy small{font-size:9px}
   body.broadcast-mode .broadcast-side-count{min-width:32px;font-size:20px}
 }
+
+/* =========================================================
+ * V4.1 송출 레이아웃 비율 및 배너 디자인 재정리
+ * ======================================================= */
+body.broadcast-mode .content-grid{
+  grid-template-columns:minmax(0,72fr) minmax(0,28fr)!important;
+  gap:8px!important;
+}
+body.broadcast-mode .board-area{
+  min-width:0;
+  padding:7px!important;
+}
+body.broadcast-mode #broadcastSidePanel{
+  min-width:0;
+  padding:10px!important;
+  border-radius:15px!important;
+  background:linear-gradient(180deg,#f6fbff 0%,#edf7ff 100%)!important;
+}
+body.broadcast-mode .broadcast-side-header{
+  flex:0 0 auto;
+  padding:2px 4px 9px!important;
+  margin-bottom:8px!important;
+  border-bottom:1px dashed #bedaf5!important;
+}
+body.broadcast-mode .broadcast-side-header .mini-label{
+  font-size:clamp(8px,.72vw,12px)!important;
+  margin-bottom:3px!important;
+}
+body.broadcast-mode .broadcast-side-header h2{
+  font-size:clamp(17px,1.55vw,28px)!important;
+  letter-spacing:-.04em;
+}
+body.broadcast-mode .broadcast-side-header p{
+  margin-top:4px!important;
+  font-size:clamp(8px,.68vw,12px)!important;
+}
+body.broadcast-mode .broadcast-prize-panel-list{
+  display:grid!important;
+  grid-template-rows:repeat(var(--broadcast-prize-count,9),minmax(0,1fr));
+  gap:6px!important;
+  overflow:hidden;
+}
+body.broadcast-mode .broadcast-side-item{
+  min-height:0;
+  grid-template-columns:auto minmax(0,1fr) auto!important;
+  gap:8px!important;
+  padding:5px 8px!important;
+  border-radius:12px!important;
+  box-shadow:0 3px 9px rgba(91,133,176,.07)!important;
+}
+body.broadcast-mode .broadcast-side-item::before{
+  top:6px!important;
+  bottom:6px!important;
+  width:3px!important;
+}
+body.broadcast-mode .broadcast-side-rank{
+  min-width:42px!important;
+  height:28px!important;
+  margin-left:2px!important;
+  padding:0 8px!important;
+  font-size:clamp(11px,.95vw,17px)!important;
+}
+body.broadcast-mode .broadcast-side-copy{
+  display:block!important;
+  min-width:0;
+}
+body.broadcast-mode .broadcast-side-copy strong{
+  display:block;
+  font-size:clamp(10px,.9vw,17px)!important;
+  line-height:1.12!important;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+body.broadcast-mode .broadcast-side-count{
+  min-width:38px!important;
+  display:flex;
+  align-items:baseline;
+  justify-content:flex-end;
+  gap:2px;
+  font-size:inherit!important;
+}
+body.broadcast-mode .broadcast-side-count b{
+  color:var(--panel-rank-color,#72beff);
+  font-size:clamp(15px,1.15vw,22px);
+  font-weight:1000;
+  line-height:1;
+}
+body.broadcast-mode .broadcast-side-count small{
+  color:#7c93ad;
+  font-size:clamp(8px,.65vw,11px);
+  font-weight:900;
+}
+body.broadcast-mode .soldout-label{
+  color:#9aa8ba;
+  font-size:clamp(8px,.68vw,12px);
+  font-weight:1000;
+  white-space:nowrap;
+}
+body.broadcast-mode .broadcast-side-item.soldout{
+  opacity:.44!important;
+  filter:saturate(.45);
+}
+
+/* 작은 캔버스에서도 고정 200px 패널을 강제하지 않음 */
+@media (max-width:950px), (max-height:620px){
+  body.broadcast-mode .content-grid{
+    grid-template-columns:minmax(0,69fr) minmax(0,31fr)!important;
+    gap:4px!important;
+  }
+  body.broadcast-mode #broadcastSidePanel{
+    padding:5px!important;
+    border-radius:8px!important;
+  }
+  body.broadcast-mode .broadcast-side-header{
+    padding:0 1px 4px!important;
+    margin-bottom:4px!important;
+  }
+  body.broadcast-mode .broadcast-side-header .mini-label,
+  body.broadcast-mode .broadcast-side-header p{
+    display:none!important;
+  }
+  body.broadcast-mode .broadcast-side-header h2{
+    font-size:clamp(10px,2.8vw,18px)!important;
+  }
+  body.broadcast-mode .broadcast-prize-panel-list{
+    gap:3px!important;
+  }
+  body.broadcast-mode .broadcast-side-item{
+    gap:3px!important;
+    padding:2px 3px 2px 5px!important;
+    border-radius:6px!important;
+  }
+  body.broadcast-mode .broadcast-side-item::before{
+    top:3px!important;
+    bottom:3px!important;
+    width:2px!important;
+  }
+  body.broadcast-mode .broadcast-side-rank{
+    min-width:23px!important;
+    height:18px!important;
+    padding:0 4px!important;
+    font-size:clamp(7px,2.1vw,11px)!important;
+  }
+  body.broadcast-mode .broadcast-side-copy strong{
+    font-size:clamp(7px,2vw,11px)!important;
+  }
+  body.broadcast-mode .broadcast-side-count{
+    min-width:18px!important;
+  }
+  body.broadcast-mode .broadcast-side-count b{
+    font-size:clamp(9px,2.3vw,14px)!important;
+  }
+  body.broadcast-mode .broadcast-side-count small,
+  body.broadcast-mode .soldout-label{
+    font-size:clamp(6px,1.6vw,8px)!important;
+  }
+}
