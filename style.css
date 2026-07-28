@@ -2564,3 +2564,22 @@ body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
     padding-bottom:1px!important;
   }
 }
+
+
+/* =========================================================
+ * V6.2 Firebase 공유/공개 조회 UI
+ * ======================================================= */
+.firebase-compact{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:16px;background:#f7faff;min-width:185px}
+.firebase-compact>div{display:flex;flex-direction:column;gap:2px}.firebase-compact small{color:var(--muted);font-weight:800}.firebase-compact strong{font-size:13px;color:var(--ink)}
+.view-mode-badge{display:inline-flex;margin-left:8px;padding:3px 8px;border-radius:999px;background:#e9f2ff;color:#4b7dcc;font-size:10px;vertical-align:middle}
+.viewer-copy{background:#eef8ff!important}
+.firebase-share-settings .section-heading{align-items:flex-start}.firebase-room-badge{padding:7px 11px;border-radius:999px;background:#eaf3ff;color:#4e78b6;font-weight:900;font-size:12px}
+.firebase-status-card{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #dbe9fb;border-radius:16px;background:#f8fbff;margin-top:14px}.firebase-status-card>div{display:flex;flex-direction:column;gap:4px}.firebase-status-card small{color:var(--muted)}
+.firebase-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.firebase-info-grid>div{padding:12px;border-radius:14px;background:#f3f7fd;display:flex;flex-direction:column;gap:5px}.firebase-info-grid span{font-size:11px;color:var(--muted);font-weight:800}.firebase-info-grid strong{font-size:13px;word-break:break-all}
+.firebase-link-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.firebase-login-section .connection-actions{flex-wrap:wrap}
+body.viewer-mode .control-row,body.viewer-mode .board-topline .random-draw-wrap,body.viewer-mode .board-topline .progress-bar-wrap,body.viewer-mode .prize-panel .recent-actions{display:none!important}
+body.viewer-mode .content-grid{margin-top:0}
+body.viewer-mode .draw-tile{cursor:default!important}
+body.firebase-locked .random-draw-actions,body.firebase-locked #previewBtn,body.firebase-locked #resetProgressBtn{opacity:.45}
+body.firebase-locked .participant-field::after{content:"관리자 로그인 후 조작 가능";display:block;color:#e26b7d;font-size:11px;font-weight:800;margin-top:5px}
+@media(max-width:760px){.firebase-info-grid{grid-template-columns:1fr}.firebase-compact{min-width:0}.firebase-link-actions .btn{width:100%}}

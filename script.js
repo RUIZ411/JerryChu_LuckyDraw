@@ -457,6 +457,198 @@ function initializeBroadcastView(){
   loadBroadcastPulse()
 }
 
+
+
+/* =========================================================
+ * V6.2 Firebase Realtime Database 실시간 공유
+ * public: 공개 조회/OBS용 안전한 상태
+ * private: 관리자 전용 전체 뽑기 결과 배치
+ * ======================================================= */
+const IS_VIEWER_VIEW = PAGE_PARAMS.get("view") === "viewer";
+const IS_READONLY_SHARED_VIEW = IS_BROADCAST_VIEW || IS_VIEWER_VIEW;
+const FIREBASE_SDK_VERSION = "12.16.0";
+const FIREBASE_ROOM_ID = String(PAGE_PARAMS.get("room") || window.JERRYCHU_ROOM_ID || "jerrychu-main")
+  .trim().replace(/[^a-zA-Z0-9_-]/g,"-").slice(0,80) || "jerrychu-main";
+const FIREBASE_CONFIG = window.JERRYCHU_FIREBASE_CONFIG || {};
+let firebaseModules = null;
+let firebaseApp = null;
+let firebaseDb = null;
+let firebaseAuth = null;
+let firebaseUser = null;
+let firebaseUnsubscribe = null;
+let firebaseReady = false;
+let firebaseWriteTimer = null;
+let firebaseWriting = false;
+let firebaseWriteQueued = false;
+let firebaseFirstSnapshot = false;
+let firebaseLastRemoteResultId = "";
+let firebaseLocalAdminBackup = normalizeState(JSON.parse(JSON.stringify(state)));
+const firebaseLocalResultIds = new Set();
+
+function firebaseConfigValid(){
+  return Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL && FIREBASE_CONFIG.projectId && !String(FIREBASE_CONFIG.apiKey).includes("YOUR_"));
+}
+function canEditShared(){return !IS_READONLY_SHARED_VIEW && firebaseReady && Boolean(firebaseUser)}
+function firebasePath(kind){return `rooms/${FIREBASE_ROOM_ID}/${kind}`}
+function cleanSharedSettings(){
+  const clean=JSON.parse(JSON.stringify(state.settings||{}));
+  delete clean.integration;
+  return clean;
+}
+function privateSharedPayload(revision){
+  return {version:2,settings:cleanSharedSettings(),board:state.board,history:state.history.slice(-1000),lastResult:state.lastResult||null,revision,updatedBy:firebaseUser?.uid||""};
+}
+function publicSharedPayload(revision){
+  const safeBoard=(state.board||[]).map(x=>x?.opened?{opened:true,type:x.type,prizeIndex:x.prizeIndex,rank:x.rank,prize:x.prize,color:x.color,participant:x.participant||"",openedAt:x.openedAt||null}:{opened:false});
+  return {version:2,settings:cleanSharedSettings(),board:safeBoard,history:state.history.slice(-1000),lastResult:state.lastResult||null,revision};
+}
+function setFirebaseStatus(text,mode="syncing",detail=""){
+  const ids=[["#firebaseStatusText","#firebaseStatusDot"],["#firebaseSettingsStatus","#firebaseSettingsDot"]];
+  ids.forEach(([textSel,dotSel])=>{const t=$(textSel),d=$(dotSel);if(t)t.textContent=text;if(d){d.className=`status-dot ${mode}`}});
+  const detailEl=$("#firebaseSettingsDetail");if(detailEl&&detail)detailEl.textContent=detail;
+  const conn=$("#broadcastConnectionText");if(conn&&IS_BROADCAST_VIEW){conn.textContent=text;conn.className=mode==="ok"?"ok":mode==="error"?"error":""}
+}
+function updateFirebaseUi(){
+  const roomText=$("#firebaseRoomIdText"),roomBadge=$("#firebaseRoomBadge"),role=$("#firebaseRoleText"),userText=$("#firebaseUserText");
+  if(roomText)roomText.textContent=FIREBASE_ROOM_ID;if(roomBadge)roomBadge.textContent=`방: ${FIREBASE_ROOM_ID}`;
+  if(role)role.textContent=canEditShared()?"관리자 편집":IS_READONLY_SHARED_VIEW?"공개 조회 전용":"로그인 필요";
+  if(userText)userText.textContent=firebaseUser?.email||"로그인 안 됨";
+  const login=$("#firebaseLoginBtn"),logout=$("#firebaseLogoutBtn");if(login)login.classList.toggle("hidden",Boolean(firebaseUser));if(logout)logout.classList.toggle("hidden",!firebaseUser);
+  const badge=$("#viewModeBadge");if(badge){badge.classList.remove("hidden");badge.textContent=IS_BROADCAST_VIEW?"OBS":IS_VIEWER_VIEW?"공개 조회":firebaseUser?"관리자":"관리자 잠금"}
+  document.body.classList.toggle("viewer-mode",IS_VIEWER_VIEW);
+  document.body.classList.toggle("firebase-locked",!IS_READONLY_SHARED_VIEW&&!firebaseUser);
+  document.body.classList.toggle("firebase-admin-ready",canEditShared());
+  ["#previewBtn","#resetProgressBtn","#generateBoardBtn","#saveSettingsBtn","#addPrizeBtn"].forEach(sel=>{const el=$(sel);if(el)el.disabled=!canEditShared()});
+  const participant=$("#participantName");if(participant)participant.disabled=!canEditShared();
+  renderRandomControls();renderBoard();
+}
+function applySharedRemote(raw,source="public"){
+  if(!raw||typeof raw!=="object")return;
+  const previousResultId=firebaseLastRemoteResultId;
+  const next=normalizeState({settings:{...state.settings,...(raw.settings||{}),integration:defaultSettings.integration},board:Array.isArray(raw.board)?raw.board:[],history:Array.isArray(raw.history)?raw.history:[],lastResult:raw.lastResult||null,queue:[],session:{active:false}});
+  state=next;
+  if(source==="private")firebaseLocalAdminBackup=normalizeState(JSON.parse(JSON.stringify(state)));
+  if(!IS_READONLY_SHARED_VIEW)localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  renderAll();updateFirebaseUi();
+  const result=raw.lastResult;
+  if(!firebaseFirstSnapshot){firebaseFirstSnapshot=true;firebaseLastRemoteResultId=result?.id||"";return}
+  if(result?.id&&result.id!==previousResultId){
+    firebaseLastRemoteResultId=result.id;
+    if(firebaseLocalResultIds.has(result.id)){firebaseLocalResultIds.delete(result.id);return}
+    const age=Date.now()-new Date(result.at||0).getTime();
+    if(age>=0&&age<20000){
+      if(Array.isArray(result.batchResults)&&result.batchResults.length>1)showBatchResultSummary(result);
+      else{
+        showResult({type:result.type,prizeIndex:result.prizeIndex,rank:result.rank,prize:result.prize,color:result.color},Number(result.index)||0,result.participant||"이름 없음");
+        clearTimeout(broadcastResultTimer);
+        broadcastResultTimer=setTimeout(()=>closeModal("resultModal"),IS_BROADCAST_VIEW?850:1100);
+      }
+    }
+  }
+}
+async function subscribeFirebaseState(kind){
+  if(firebaseUnsubscribe){firebaseUnsubscribe();firebaseUnsubscribe=null}
+  firebaseFirstSnapshot=false;
+  const {ref,onValue}=firebaseModules.db;
+  firebaseUnsubscribe=onValue(ref(firebaseDb,firebasePath(kind)),async snap=>{
+    if(snap.exists()){
+      applySharedRemote(snap.val(),kind);
+      setFirebaseStatus(kind==="private"?"관리자 실시간 연결":"실시간 공유 연결","ok",`방 ${FIREBASE_ROOM_ID}의 변경사항을 즉시 받고 있습니다.`);
+    }else if(kind==="private"&&canEditShared()){
+      state=normalizeState(JSON.parse(JSON.stringify(firebaseLocalAdminBackup)));
+      await writeFirebaseState(true);
+    }else{
+      setFirebaseStatus("공유 방 생성 대기","syncing",`관리자가 방 ${FIREBASE_ROOM_ID}에서 처음 상태를 저장하면 표시됩니다.`);
+      renderAll();updateFirebaseUi();
+    }
+  },err=>{console.error(err);setFirebaseStatus("Firebase 권한 오류","error",err.message||String(err))});
+}
+function scheduleFirebaseWrite(immediate=false){
+  if(!canEditShared())return;
+  clearTimeout(firebaseWriteTimer);
+  firebaseWriteTimer=setTimeout(()=>writeFirebaseState(),immediate?0:20);
+}
+async function writeFirebaseState(force=false){
+  if(!canEditShared())return false;
+  if(firebaseWriting){firebaseWriteQueued=true;return false}
+  firebaseWriting=true;firebaseWriteQueued=false;
+  try{
+    setFirebaseStatus("저장 중","syncing","Firebase에 최신 뽑기판 상태를 전송하고 있습니다.");
+    const revision=`${Date.now()}-${crypto.randomUUID()}`;
+    const {ref,update,serverTimestamp}=firebaseModules.db;
+    const privateData=privateSharedPayload(revision),publicData=publicSharedPayload(revision);
+    privateData.updatedAt=serverTimestamp();publicData.updatedAt=serverTimestamp();
+    await update(ref(firebaseDb),{[firebasePath("private")]:privateData,[firebasePath("public")]:publicData});
+    firebaseLocalAdminBackup=normalizeState(JSON.parse(JSON.stringify(state)));
+    setFirebaseStatus("관리자 실시간 연결","ok",`방 ${FIREBASE_ROOM_ID}에 저장되었습니다.`);
+    return true;
+  }catch(e){console.error(e);setFirebaseStatus("Firebase 저장 실패","error",e.message||String(e));return false}
+  finally{firebaseWriting=false;if(firebaseWriteQueued){firebaseWriteQueued=false;scheduleFirebaseWrite(true)}}
+}
+function saveState(){
+  if(!IS_READONLY_SHARED_VIEW)localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  scheduleFirebaseWrite(true);
+}
+function publishBroadcastPulse(result){if(result?.id)firebaseLocalResultIds.add(result.id)}
+function scheduleBroadcastPublish(){}
+function renderQueue(){}
+function renderSession(){}
+function renderSyncStatus(){updateFirebaseUi()}
+function restartPolling(){}
+function renderBoard(){
+  const b=$("#drawBoard"),e=$("#boardEmpty");b.innerHTML="";
+  if(!state.board.length){b.classList.add("hidden");e.classList.remove("hidden");return}
+  b.classList.remove("hidden");e.classList.add("hidden");
+  const columns=Math.max(1,Number(state.settings.columns)||10),rows=Math.max(1,Math.ceil(state.board.length/columns));
+  b.style.setProperty("--board-columns",columns);b.style.setProperty("--board-rows",rows);
+  state.board.forEach((item,i)=>{const btn=document.createElement("button");btn.className="draw-tile";
+    if(item.opened){btn.classList.add("opened");btn.disabled=true;btn.style.setProperty("--tile-color",item.color||"#72beff");if(item.type==="lose")btn.classList.add("lose");const compact=IS_READONLY_SHARED_VIEW;const label=compact?esc(item.rank||(item.type==="lose"?"꽝":"당첨")):(item.type==="win"?`${esc(item.rank)}<br>${esc(item.prize)}`:esc(item.prize));btn.innerHTML=`<span class="tile-number">${label}</span>`}
+    else{btn.innerHTML=`<span class="tile-number">${formatNumber(i+1)}</span>`;btn.disabled=!canEditShared();if(canEditShared())btn.addEventListener("click",()=>drawDirect(i))}
+    b.appendChild(btn)
+  })
+}
+function renderRandomControls(){
+  const remaining=state.board.filter(x=>!x.opened).length;
+  [["#randomDraw1Btn",1],["#randomDraw5Btn",5],["#randomDraw11Btn",11]].forEach(([selector,count])=>{const btn=$(selector);if(!btn)return;btn.disabled=!canEditShared()||!state.board.length||remaining<1;btn.title=!canEditShared()?"관리자 로그인이 필요합니다.":remaining<count?`남은 ${remaining}개만 추첨됩니다.`:`남은 칸에서 ${count}개를 랜덤 추첨합니다.`})
+}
+function renderBroadcastTopbar(){const title=$("#broadcastTitle");if(!title)return;title.textContent=state.settings.title||"제리츄 뽑기판";const total=state.board.length||Number(state.settings.total)||0,opened=state.board.filter(x=>x.opened).length;$("#broadcastRemaining").textContent=Math.max(0,total-opened);$("#broadcastQueueCount").textContent="실시간";$("#broadcastCurrentTarget").textContent="공유 뽑기판";$("#broadcastCurrentMeta").textContent=`방 ${FIREBASE_ROOM_ID}`}
+function buildShareUrl(view,layout=""){
+  const url=new URL(location.href);url.search="";url.hash="";url.searchParams.set("room",FIREBASE_ROOM_ID);
+  if(view)url.searchParams.set("view",view);if(layout)url.searchParams.set("layout",layout);return url.toString()
+}
+async function copyTextValue(text,message){try{await navigator.clipboard.writeText(text)}catch{const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove()}alert(message)}
+async function copyBroadcastUrl(layout="full"){await copyTextValue(buildShareUrl("broadcast",layout==="mini"?"mini":"full"),`${layout==="mini"?"미니 ":""}OBS 송출 주소를 복사했습니다.`)}
+async function copyViewerUrl(){await copyTextValue(buildShareUrl("viewer"),"공개 조회 주소를 복사했습니다.")}
+async function copyAdminUrl(){await copyTextValue(buildShareUrl(""),"관리자 주소를 복사했습니다.")}
+async function firebaseLogin(){
+  const email=$("#firebaseAdminEmail")?.value.trim(),password=$("#firebaseAdminPassword")?.value||"",result=$("#firebaseActionResult");
+  if(!email||!password){if(result)result.textContent="이메일과 비밀번호를 입력해 주세요.";return}
+  try{if(result)result.textContent="로그인 중...";await firebaseModules.auth.signInWithEmailAndPassword(firebaseAuth,email,password);if(result)result.textContent="관리자 로그인 완료";$("#firebaseAdminPassword").value=""}
+  catch(e){console.error(e);if(result)result.textContent=`로그인 실패: ${e.message}`}
+}
+async function firebaseLogout(){try{await firebaseModules.auth.signOut(firebaseAuth);const r=$("#firebaseActionResult");if(r)r.textContent="로그아웃했습니다."}catch(e){alert(e.message)}}
+async function testConnection(){
+  const result=$("#firebaseActionResult");if(!firebaseReady){if(result)result.textContent="Firebase 설정이 완료되지 않았습니다.";return false}
+  try{if(result)result.textContent="연결 확인 중...";const snap=await firebaseModules.db.get(firebaseModules.db.ref(firebaseDb,firebasePath("public")));if(result)result.textContent=snap.exists()?"Firebase 실시간 공유 연결 정상":"연결 정상 · 아직 생성되지 않은 방입니다.";return true}catch(e){if(result)result.textContent=`연결 실패: ${e.message}`;return false}
+}
+function initializeBroadcastView(){document.body.classList.add("broadcast-mode");if(BROADCAST_LAYOUT==="mini")document.body.classList.add("broadcast-mini");document.title=`제리츄 뽑기판 · ${BROADCAST_LAYOUT==="mini"?"미니 ":""}송출 화면`;$("#broadcastTopbar")?.classList.remove("hidden");renderAll();updateFirebaseUi()}
+async function initializeFirebaseSharedApp(){
+  state.settings.integration={...defaultSettings.integration,enabled:false};state.queue=[];state.session={...state.session,active:false};
+  if(IS_BROADCAST_VIEW)initializeBroadcastView();else{renderAll();updateFirebaseUi()}
+  if(!firebaseConfigValid()){setFirebaseStatus("Firebase 설정 필요","error","firebase-config.js에 Firebase 웹 앱 설정값을 입력해 주세요.");return}
+  try{
+    setFirebaseStatus("Firebase SDK 로드 중","syncing","실시간 연결 모듈을 불러오고 있습니다.");
+    const [appMod,authMod,dbMod]=await Promise.all([
+      import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-app.js`),
+      import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-auth.js`),
+      import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-database.js`)
+    ]);
+    firebaseModules={app:appMod,auth:authMod,db:dbMod};firebaseApp=appMod.initializeApp(FIREBASE_CONFIG);firebaseDb=dbMod.getDatabase(firebaseApp);firebaseAuth=authMod.getAuth(firebaseApp);firebaseReady=true;
+    await authMod.setPersistence(firebaseAuth,authMod.browserLocalPersistence).catch(()=>{});
+    authMod.onAuthStateChanged(firebaseAuth,async user=>{firebaseUser=user||null;updateFirebaseUi();if(!IS_READONLY_SHARED_VIEW&&firebaseUser)await subscribeFirebaseState("private");else await subscribeFirebaseState("public")});
+  }catch(e){console.error(e);setFirebaseStatus("Firebase 초기화 실패","error",e.message||String(e))}
+}
+
 $("#confirmDrawBtn").onclick=performDraw;$("#randomDraw1Btn").onclick=()=>randomDraw(1);$("#randomDraw5Btn").onclick=()=>randomDraw(5);$("#randomDraw11Btn").onclick=()=>randomDraw(11);$("#copyBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("full");$("#copyMiniBroadcastUrlBtn").onclick=()=>copyBroadcastUrl("mini");$("#startSessionBtn").onclick=startDrawSession;$("#endSessionBtn").onclick=endDrawSession;$("#settingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#emptySettingsBtn").onclick=()=>{renderSettings();updateSettingsFooter($(".settings-tab.active")?.dataset.tab||"boardSettings");openModal("settingsModal")};$("#previewBtn").onclick=()=>{renderPreview();openModal("previewModal")};$("#resetProgressBtn").onclick=resetProgress;$("#copyWinnersBtn").onclick=copyWinnerHistory;$("#clearHistoryBtn").onclick=clearHistory;$("#addPrizeBtn").onclick=addPrizeRow;$("#saveSettingsBtn").onclick=saveSettingsOnly;$("#generateBoardBtn").onclick=generateFromSettings;$("#exportCsvBtn").onclick=exportCsv;$("#syncNowBtn").onclick=()=>{if(!state.session?.active){alert("먼저 뽑기 시작 버튼을 눌러 주세요.");return}syncGifts()};$("#testConnectionBtn").onclick=()=>testConnection(true);
 $("#manualQueueBtn").onclick=()=>openModal("manualQueueModal");$("#manualQueueAddBtn").onclick=()=>{const n=$("#manualNickname").value.trim(),d=$("#manualDraws").value,m=$("#manualMemo").value.trim();if(addQueueEntry({nickname:n,draws:d,memo:m})){closeModal("manualQueueModal");$("#manualNickname").value="";$("#manualDraws").value=1;$("#manualMemo").value=""}};
 $("#targetMinusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining=Math.max(0,c.remaining-1);saveState();renderQueue()}};$("#targetPlusBtn").onclick=()=>{const c=currentTarget();if(c){c.remaining++;c.total++;saveState();renderQueue()}};$("#targetSkipBtn").onclick=()=>{const c=currentTarget();if(c){state.queue=state.queue.filter(x=>x.id!==c.id);state.queue.push(c);saveState();renderQueue()}};$("#targetRemoveBtn").onclick=()=>{const c=currentTarget();if(c&&confirm(`${c.nickname} 님을 대기열에서 삭제할까요?`)){state.queue=state.queue.filter(x=>x.id!==c.id);saveState();renderQueue()}};
@@ -465,4 +657,16 @@ $$(".settings-tab").forEach(t=>t.onclick=()=>{$$(".settings-tab").forEach(x=>x.c
 $$('input[name="ruleMode"]').forEach(x=>x.onchange=updateRulePanels);$("#addRangeRuleBtn").onclick=()=>{$("#rangeRuleEditor").insertAdjacentHTML("beforeend",`<div class="range-rule-row"><input class="range-min" type="number" min="0" value="0"><span>~</span><input class="range-max" type="number" min="0" placeholder="제한 없음"><span>→</span><input class="range-draws" type="number" min="0" value="1"><button class="rule-delete">×</button></div>`);bindRuleDeletes()};$("#addExactRuleBtn").onclick=()=>{$("#exactRuleEditor").insertAdjacentHTML("beforeend",`<div class="exact-rule-row"><input class="exact-count" type="number" min="0" value="500"><span>개 →</span><input class="exact-draws" type="number" min="0" value="1"><button class="rule-delete">×</button></div>`);bindRuleDeletes()};
 $("#testBalloonCount").oninput=updateTestDrawResult;["ratioBalloons","ratioDraws","soopMaxDraws"].forEach(id=>$("#"+id).oninput=updateTestDrawResult);$("#testAddQueueBtn").onclick=()=>{const count=Number($("#testBalloonCount").value)||0,draws=calculateDraws(count,getDraftIntegration());if(draws>0)addQueueEntry({nickname:"연동 테스트",draws,source:"manual",balloonCount:count,memo:`별풍선 ${count.toLocaleString()}개 계산 테스트`})};$("#soundVolume").oninput=updateSoundVolumeLabel;$$('[data-sound-test]').forEach(button=>button.onclick=()=>testSoundEffect(button.dataset.soundTest));
 ["settingTotal","settingColumns","settingLoseText","settingTitle","settingSubtitle","soopEnabled","soopExecUrl"].forEach(id=>$("#"+id).addEventListener("input",updateSettingsSummary));$$("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));$$(".modal-backdrop").forEach(m=>m.onclick=e=>{if(e.target===m)closeModal(m.id)});document.addEventListener("keydown",e=>{if(e.key==="Escape")$$(".modal-backdrop:not(.hidden)").forEach(m=>closeModal(m.id))});
-preloadSoundEffects();if(IS_BROADCAST_VIEW){initializeBroadcastView()}else{state.settings.integration.enabled=false;state.session.active=false;state.queue=[];localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderAll();setTimeout(()=>scheduleBroadcastPublish(true),700)}
+
+$("#copyViewerUrlBtn").onclick=copyViewerUrl;
+$("#copyViewerUrlSettingsBtn").onclick=copyViewerUrl;
+$("#copyAdminUrlBtn").onclick=copyAdminUrl;
+$("#copyBroadcastUrlSettingsBtn").onclick=()=>copyBroadcastUrl("full");
+$("#firebaseLoginBtn").onclick=firebaseLogin;
+$("#firebaseLogoutBtn").onclick=firebaseLogout;
+$("#firebaseTestBtn").onclick=testConnection;
+$("#firebaseSyncNowBtn").onclick=()=>{if(canEditShared())writeFirebaseState(true);else alert("관리자 로그인이 필요합니다.")};
+const originalSettingsOpen=$("#settingsBtn").onclick;
+$("#settingsBtn").onclick=()=>{originalSettingsOpen?.();updateFirebaseUi()};
+
+preloadSoundEffects();initializeFirebaseSharedApp()

@@ -16,7 +16,7 @@
 <div class="page-shell">
 <header class="hero">
 <div class="hero-copy">
-<div class="eyebrow">JERRYCHU LUCKY DRAW</div>
+<div class="eyebrow">JERRYCHU LUCKY DRAW <span class="view-mode-badge hidden" id="viewModeBadge"></span></div>
 <h1 id="displayTitle">제리츄 뽑기판</h1>
 <p id="displaySubtitle">오늘의 행운을 뽑아보세요!</p>
 <div class="hero-stats">
@@ -59,12 +59,13 @@
 <label for="participantName">이번 뽑기 당첨자</label>
 <input id="participantName" maxlength="24" placeholder="당첨자 이름을 입력해 주세요" type="text"/>
 </div>
-<div class="sync-compact legacy-soop-ui">
-<span class="status-dot off" id="syncStatusDot"></span>
-<div><small>SOOP 연동</small><strong id="syncStatusText">사용 안 함</strong></div>
-<button class="icon-sync" id="syncNowBtn" title="지금 동기화">↻</button>
+<div class="firebase-compact" id="firebaseCompactStatus">
+<span class="status-dot syncing" id="firebaseStatusDot"></span>
+<div><small>Firebase 공유</small><strong id="firebaseStatusText">연결 준비 중</strong></div>
+<button class="icon-sync" id="firebaseSyncNowBtn" title="Firebase에 현재 상태 저장">↻</button>
 </div>
 <div class="control-actions">
+<button class="btn broadcast-copy viewer-copy" id="copyViewerUrlBtn">🔗 공개 조회 주소</button>
 <button class="btn broadcast-copy" id="copyBroadcastUrlBtn">📺 전체 송출 주소</button>
 <button class="btn broadcast-copy mini-broadcast-copy" id="copyMiniBroadcastUrlBtn">🪟 미니 송출 주소</button>
 <button class="btn secondary" id="settingsBtn">⚙ 관리 설정</button>
@@ -164,7 +165,7 @@
 <div class="modal settings-modal">
 <button class="modal-close" data-close="settingsModal">×</button>
 <div class="modal-header"><div><span class="mini-label">ADMIN SETTINGS</span><h2>제리츄 뽑기판 설정</h2></div><span class="settings-preview"><img alt="캐릭터 미리보기" src="assets/mascot-character.png"/></span></div>
-<div class="settings-tabs"><button class="settings-tab active" data-tab="boardSettings">뽑기판</button><button class="settings-tab" data-tab="soopSettings">송출 연동</button><button class="settings-tab" data-tab="soundSettings">효과음</button></div>
+<div class="settings-tabs"><button class="settings-tab active" data-tab="boardSettings">뽑기판</button><button class="settings-tab" data-tab="soopSettings">Firebase 공유</button><button class="settings-tab" data-tab="soundSettings">효과음</button></div>
 <div class="settings-scroll">
 <div class="settings-tab-panel" id="boardSettings">
 <section class="settings-section"><h3>기본 설정</h3><div class="form-grid">
@@ -178,32 +179,58 @@
 <section class="settings-section summary-section"><div class="summary-box"><span>전체 칸</span><strong id="summaryTotal">100</strong></div><div class="summary-box"><span>당첨 칸</span><strong id="summaryWin">0</strong></div><div class="summary-box"><span>꽝 칸</span><strong id="summaryLose">100</strong></div><div class="setting-error hidden" id="settingError"></div></section>
 </div>
 <div class="settings-tab-panel hidden" id="soopSettings">
-<section class="settings-section broadcast-link-settings">
+<section class="settings-section firebase-share-settings">
 <div class="section-heading compact">
 <div>
-<h3>OBS 송출 화면 연동</h3>
-<p class="helper">SOOP 후원 수신 기능은 사용하지 않습니다. 아래 정보는 운영 화면과 OBS 송출 화면을 동기화할 때만 사용됩니다.</p>
+<h3>Firebase 실시간 공유</h3>
+<p class="helper">관리자가 조작하면 공개 조회 페이지와 OBS 송출 화면이 즉시 같은 상태로 갱신됩니다.</p>
 </div>
+<span class="firebase-room-badge" id="firebaseRoomBadge">방: -</span>
 </div>
-<div class="form-grid integration-fields">
-<label class="full-width"><span>Apps Script Web App 주소 (/exec)</span><input id="soopExecUrl" placeholder="https://script.google.com/macros/s/.../exec" type="url"/></label>
-<label><span>연동 토큰</span><input id="soopToken" placeholder="연동 토큰" type="password"/></label>
-<label><span>송출 구분 ID</span><input id="soopBjId" placeholder="예: rariruro" type="text"/></label>
+<div class="firebase-status-card">
+<span class="status-dot syncing" id="firebaseSettingsDot"></span>
+<div><strong id="firebaseSettingsStatus">Firebase 연결 준비 중</strong><small id="firebaseSettingsDetail">firebase-config.js 설정을 확인하고 있습니다.</small></div>
 </div>
-<div class="connection-actions"><button class="btn secondary small" id="testConnectionBtn">송출 연결 테스트</button><span class="connection-result" id="connectionTestResult">아직 테스트하지 않았습니다.</span></div>
+<div class="firebase-info-grid">
+<div><span>현재 공유 방</span><strong id="firebaseRoomIdText">-</strong></div>
+<div><span>현재 권한</span><strong id="firebaseRoleText">조회 전용</strong></div>
+<div><span>로그인 계정</span><strong id="firebaseUserText">로그인 안 됨</strong></div>
+</div>
 </section>
-<section aria-hidden="true" class="legacy-integration-hidden">
-<input id="soopEnabled" type="checkbox"/>
-<select id="soopPollSeconds"><option selected="" value="5">5</option></select>
-<input id="soopMaxDraws" type="number" value="100"/>
-<input checked="" id="kindBalloon" type="checkbox"/>
-<input checked="" id="kindChallenge" type="checkbox"/>
-<input checked="" id="kindBattle" type="checkbox"/>
-<input checked="" name="ruleMode" type="radio" value="ratio"/>
+<section class="settings-section firebase-login-section">
+<h3>관리자 로그인</h3>
+<p class="helper">Firebase Authentication에서 생성한 관리자 이메일 계정으로 로그인합니다.</p>
+<div class="form-grid">
+<label><span>관리자 이메일</span><input id="firebaseAdminEmail" autocomplete="username" placeholder="admin@example.com" type="email"/></label>
+<label><span>비밀번호</span><input id="firebaseAdminPassword" autocomplete="current-password" placeholder="비밀번호" type="password"/></label>
+</div>
+<div class="connection-actions">
+<button class="btn primary small" id="firebaseLoginBtn" type="button">관리자 로그인</button>
+<button class="btn secondary small hidden" id="firebaseLogoutBtn" type="button">로그아웃</button>
+<button class="btn secondary small" id="firebaseTestBtn" type="button">연결 테스트</button>
+<span class="connection-result" id="firebaseActionResult">로그인하면 뽑기판을 조작할 수 있습니다.</span>
+</div>
+</section>
+<section class="settings-section firebase-link-section">
+<h3>공유 주소</h3>
+<div class="firebase-link-actions">
+<button class="btn secondary" id="copyAdminUrlBtn" type="button">🔐 관리자 주소 복사</button>
+<button class="btn secondary" id="copyViewerUrlSettingsBtn" type="button">🔗 공개 조회 주소 복사</button>
+<button class="btn secondary" id="copyBroadcastUrlSettingsBtn" type="button">📺 OBS 주소 복사</button>
+</div>
+<p class="helper">공개 조회 주소와 OBS 주소는 미추첨 당첨 위치를 내려받지 않는 읽기 전용 화면입니다.</p>
+</section>
+<section class="legacy-integration-hidden" aria-hidden="true">
+<button id="syncNowBtn" type="button"></button>
+<input id="soopExecUrl" type="url"/><input id="soopToken" type="password"/><input id="soopBjId" type="text"/>
+<input id="soopEnabled" type="checkbox"/><select id="soopPollSeconds"><option selected value="5">5</option></select><input id="soopMaxDraws" type="number" value="100"/>
+<input checked id="kindBalloon" type="checkbox"/><input checked id="kindChallenge" type="checkbox"/><input checked id="kindBattle" type="checkbox"/>
+<input checked name="ruleMode" type="radio" value="ratio"/>
 <div id="ratioRulePanel"><input id="ratioBalloons" type="number" value="500"/><input id="ratioDraws" type="number" value="1"/></div>
 <div class="hidden" id="rangeRulePanel"><div id="rangeRuleEditor"></div><button id="addRangeRuleBtn" type="button">구간 추가</button></div>
 <div class="hidden" id="exactRulePanel"><div id="exactRuleEditor"></div><button id="addExactRuleBtn" type="button">개수 추가</button></div>
 <input id="testBalloonCount" type="number" value="0"/><span id="testDrawResult">0회</span><button id="testAddQueueBtn" type="button">테스트</button>
+<span id="connectionTestResult"></span><button id="testConnectionBtn" type="button"></button>
 </section>
 </div>
 <div class="settings-tab-panel hidden" id="soundSettings">
@@ -263,6 +290,7 @@
 </div>
 </div>
 <div class="modal-backdrop hidden" id="previewModal"><div class="modal preview-modal"><button class="modal-close" data-close="previewModal">×</button><div class="modal-header"><div><span class="mini-label">ADMIN PREVIEW</span><h2>전체 결과 미리보기</h2></div><button class="btn secondary small" id="exportCsvBtn">CSV 내보내기</button></div><p class="helper">이 화면은 방송에 노출되지 않도록 주의해 주세요.</p><div class="preview-grid" id="previewGrid"></div></div></div>
+<script src="firebase-config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
