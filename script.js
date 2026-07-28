@@ -56,7 +56,7 @@ function scheduleOperatorResultClose(ms=650){clearTimeout(operatorResultTimer);o
 function drawDirect(i){const name=getDrawParticipant(),entry=applyDrawAtIndex(i,name);if(!entry)return;state.lastResult=entry.result;publishBroadcastPulse(state.lastResult);saveState();scheduleBroadcastPublish(true);renderAll();showResult(entry.item,entry.index,name);scheduleOperatorResultClose(650)}
 function performDraw(){if(pendingIndex===null)return;const i=pendingIndex;pendingIndex=null;closeModal("confirmModal");drawDirect(i)}
 function setRandomDrawStatus(message){const el=$("#randomDrawStatus");if(!el)return;clearTimeout(randomStatusTimer);el.textContent=message;el.classList.add("show");randomStatusTimer=setTimeout(()=>{el.classList.remove("show");el.textContent=""},1800)}
-function randomDraw(count){if(!state.board.length){setRandomDrawStatus("먼저 뽑기판을 만들어 주세요.");return}const unopened=state.board.map((x,i)=>x.opened?null:i).filter(i=>i!==null);if(!unopened.length){setRandomDrawStatus("남은 번호가 없습니다.");return}const selected=shuffle(unopened).slice(0,Math.min(Math.max(1,Number(count)||1),unopened.length));const name=getDrawParticipant(),entries=selected.map(i=>applyDrawAtIndex(i,name)).filter(Boolean);if(!entries.length)return;const highlight=getBestDrawEntry(entries);state.lastResult={...highlight.result,batchCount:entries.length};publishBroadcastPulse(state.lastResult);saveState();scheduleBroadcastPublish(true);renderAll();const wins=entries.filter(x=>x.item.type==="win").length,loses=entries.length-wins;if(entries.length===1){showResult(highlight.item,highlight.index,name);scheduleOperatorResultClose(650)}else{playResultSound(highlight.item);setRandomDrawStatus(`${entries.length}개 추첨 완료 · 당첨 ${wins}개 / 꽝 ${loses}개`)}}
+function randomDraw(count){if(!state.board.length){setRandomDrawStatus("먼저 뽑기판을 만들어 주세요.");return}const unopened=state.board.map((x,i)=>x.opened?null:i).filter(i=>i!==null);if(!unopened.length){setRandomDrawStatus("남은 번호가 없습니다.");return}const selected=shuffle(unopened).slice(0,Math.min(Math.max(1,Number(count)||1),unopened.length));const name=getDrawParticipant(),entries=selected.map(i=>applyDrawAtIndex(i,name)).filter(Boolean);if(!entries.length)return;const highlight=getBestDrawEntry(entries);const batchResults=entries.map(entry=>({index:entry.index,number:formatNumber(entry.index+1),type:entry.item.type,prizeIndex:entry.item.prizeIndex,rank:entry.item.rank,prize:entry.item.prize,color:entry.item.color,participant:name}));state.lastResult={...highlight.result,batchCount:entries.length,batchResults};publishBroadcastPulse(state.lastResult);saveState();scheduleBroadcastPublish(true);renderAll();const wins=entries.filter(x=>x.item.type==="win").length,loses=entries.length-wins;if(entries.length===1){showResult(highlight.item,highlight.index,name);scheduleOperatorResultClose(650)}else{playResultSound(highlight.item);setRandomDrawStatus(`${entries.length}개 추첨 완료 · 당첨 ${wins}개 / 꽝 ${loses}개`)}}
 const SOUND_PATHS={first:"assets/sounds/first-prize.wav",win:"assets/sounds/win.wav",lose:"assets/sounds/lose.wav"};
 const soundPlayers=Object.create(null);
 function getSoundPlayer(key){if(!SOUND_PATHS[key])return null;if(!soundPlayers[key]){const audio=new Audio(SOUND_PATHS[key]);audio.preload="auto";soundPlayers[key]=audio}return soundPlayers[key]}
@@ -69,6 +69,20 @@ function setSoundTestStatus(message,isError=false){const el=$("#soundTestStatus"
 function testSoundEffect(key){try{playSoundEffect(key,true);setSoundTestStatus(`${key==="first"?"1등":key==="win"?"일반 당첨":"꽝"} 효과음을 재생했습니다.`)}catch(e){setSoundTestStatus(`효과음 재생 실패: ${e.message}`,true)}}
 function getDraftSoundSettings(){return{enabled:$("#soundEnabled")?.checked!==false,volume:Math.max(0,Math.min(1,(Number($("#soundVolume")?.value)||0)/100)),operatorEnabled:Boolean($("#soundOperatorEnabled")?.checked),first:$("#soundFirstEnabled")?.checked!==false,win:$("#soundWinEnabled")?.checked!==false,lose:$("#soundLoseEnabled")?.checked!==false}}
 function showResult(item,i,name){const c=$("#resultModalCard");c.classList.toggle("lose-result",item.type==="lose");if(item.type==="win"){$("#resultEmoji").textContent=isFirstPrizeResult(item)?"🎉":"✨";$("#resultRank").textContent=item.rank;$("#resultRank").style.background=item.color||"#9f8fff";$("#resultPrize").textContent=item.prize;$("#resultMessage").textContent=isFirstPrizeResult(item)?"대박입니다!":"축하합니다!"}else{$("#resultEmoji").textContent="💫";$("#resultRank").textContent="꽝";$("#resultRank").style.background="#9ba7b8";$("#resultPrize").textContent=item.prize;$("#resultMessage").textContent="다음 기회에는 꼭 당첨될 거예요!"}$("#resultMeta").textContent=`${name} · ${formatNumber(i+1)}번`;playResultSound(item);openModal("resultModal")}
+function showBatchResultSummary(result){
+  const results=Array.isArray(result?.batchResults)?result.batchResults:[];
+  if(results.length<2)return false;
+  const wins=results.filter(x=>x.type==="win").length,loses=results.length-wins;
+  $("#batchResultTitle").textContent=`랜덤 ${results.length}개 추첨 결과`;
+  $("#batchResultSummary").textContent=`당첨 ${wins}개 · 꽝 ${loses}개`;
+  $("#batchResultGrid").innerHTML=results.map(x=>`<div class="batch-result-item ${x.type==="win"?"win":"lose"}" style="--batch-color:${esc(x.color||"#9ba7b8")}"><span class="batch-number">${esc(x.number||formatNumber((Number(x.index)||0)+1))}번</span><strong>${x.type==="win"?esc(x.rank||"당첨"):"꽝"}</strong><small>${esc(x.prize||"")}</small></div>`).join("");
+  const best=results.find(x=>x.type==="win")||results[0];
+  playResultSound({type:best.type,prizeIndex:best.prizeIndex,rank:best.rank,prize:best.prize,color:best.color});
+  openModal("batchResultModal");
+  clearTimeout(broadcastResultTimer);
+  broadcastResultTimer=setTimeout(()=>closeModal("batchResultModal"),3000);
+  return true;
+}
 function addQueueEntry({nickname,draws,source="manual",balloonCount=0,eventId="",kind="MANUAL",memo=""}){draws=Math.max(0,Math.floor(Number(draws)||0));if(!nickname||draws<1)return false;if(eventId&&(state.importedEventIds.includes(eventId)||state.queue.some(q=>q.eventId===eventId)))return false;state.queue.push({id:crypto.randomUUID(),nickname,remaining:draws,total:draws,used:0,source,balloonCount,eventId,kind,kindLabel:kindToLabel(kind),memo,createdAt:new Date().toISOString()});if(eventId){state.importedEventIds.push(eventId);state.importedEventIds=state.importedEventIds.slice(-3000)}saveState();renderQueue();return true}
 function kindToLabel(k){return({BALLOON_GIFTED:"일반 후원",CHALLENGE_MISSION_GIFTED:"도전미션",BATTLE_MISSION_GIFTED:"배틀미션",MANUAL:"수동"})[k]||k||"후원"}
 function calculateDraws(count,settings=state.settings.integration){count=Math.max(0,Number(count)||0);let n=0;if(settings.ruleMode==="ratio"){const b=Math.max(1,Number(settings.ratio.balloons)||1),d=Math.max(0,Number(settings.ratio.draws)||0);n=Math.floor(count/b)*d}else if(settings.ruleMode==="range"){const r=(settings.ranges||[]).find(x=>count>=Number(x.min||0)&&(x.max===null||x.max===""||count<=Number(x.max)));n=r?Number(r.draws)||0:0}else{const r=(settings.exacts||[]).find(x=>count===Number(x.count));n=r?Number(r.draws)||0:0}return Math.max(0,Math.min(Number(settings.maxDraws)||999,Math.floor(n)))}
@@ -285,6 +299,14 @@ function applyBroadcastPulse(pulse){
   lastBroadcastPulseId=result.id;
   lastBroadcastResultId=result.id;
   if(age<0||age>12000)return;
+  const batchResults=Array.isArray(result.batchResults)?result.batchResults:[];
+  if(batchResults.length>1){
+    batchResults.forEach(x=>{const index=Math.max(0,Number(x.index)||0);if(Array.isArray(state.board)&&state.board[index])state.board[index]={opened:true,type:x.type,prizeIndex:x.prizeIndex,rank:x.rank,prize:x.prize,color:x.color,participant:x.participant||result.participant||""}});
+    renderBoard();
+    renderBroadcastPrizeStrip();
+    showBatchResultSummary(result);
+    return;
+  }
   const index=Math.max(0,Number(result.index)||0);
   if(Array.isArray(state.board)&&state.board[index]){
     state.board[index]={opened:true,type:result.type,prizeIndex:result.prizeIndex,rank:result.rank,prize:result.prize,color:result.color,participant:result.participant||""};
@@ -370,8 +392,12 @@ function applyBroadcastData(data){
     const age=Date.now()-new Date(result.at||0).getTime();
     lastBroadcastResultId=result.id;
     if(age>=0&&age<12000){
-      showResult({type:result.type,prizeIndex:result.prizeIndex,rank:result.rank,prize:result.prize,color:result.color},Number(result.index)||0,result.participant||"이름 없음");
-      clearTimeout(broadcastResultTimer);broadcastResultTimer=setTimeout(()=>closeModal("resultModal"),850)
+      if(Array.isArray(result.batchResults)&&result.batchResults.length>1){
+        showBatchResultSummary(result);
+      }else{
+        showResult({type:result.type,prizeIndex:result.prizeIndex,rank:result.rank,prize:result.prize,color:result.color},Number(result.index)||0,result.participant||"이름 없음");
+        clearTimeout(broadcastResultTimer);broadcastResultTimer=setTimeout(()=>closeModal("resultModal"),850)
+      }
     }
   }
 }

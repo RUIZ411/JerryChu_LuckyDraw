@@ -147,6 +147,17 @@
 </div>
 <div class="modal-backdrop hidden" id="confirmModal"><div class="modal small-modal"><button class="modal-close" data-close="confirmModal">×</button><div class="confirm-number" id="confirmNumber">001</div><h2>이 번호를 뽑을까요?</h2><p id="confirmParticipant">주인공: 이름 없음</p><div class="modal-actions"><button class="btn secondary" data-close="confirmModal">취소</button><button class="btn primary" id="confirmDrawBtn">뽑기!</button></div></div></div>
 <div class="modal-backdrop hidden" id="resultModal"><div class="modal result-modal" id="resultModalCard"><button class="modal-close" data-close="resultModal">×</button><div class="result-character-wrap"><img alt="결과 캐릭터" class="result-character" src="assets/mascot-character.png"/></div><div class="result-emoji" id="resultEmoji">🎉</div><div class="result-rank" id="resultRank">1등</div><h2 id="resultPrize">당첨!</h2><p id="resultMessage">축하합니다!</p><div class="result-meta" id="resultMeta"></div><button class="btn primary wide" data-close="resultModal">확인</button></div></div>
+
+<div class="modal-backdrop hidden" id="batchResultModal">
+  <div class="modal batch-result-modal" id="batchResultModalCard">
+    <div class="batch-result-header">
+      <span class="batch-result-icon">🎲</span>
+      <div><span class="mini-label">RANDOM DRAW RESULT</span><h2 id="batchResultTitle">랜덤 추첨 결과</h2></div>
+    </div>
+    <div class="batch-result-summary" id="batchResultSummary">당첨 0개 · 꽝 0개</div>
+    <div class="batch-result-grid" id="batchResultGrid"></div>
+  </div>
+</div>
 <div class="modal-backdrop hidden legacy-soop-ui" id="manualQueueModal"><div class="modal small-modal"><button class="modal-close" data-close="manualQueueModal">×</button><span class="mini-label">MANUAL QUEUE</span><h2>뽑기 대상 수동 추가</h2><div class="manual-form"><label><span>닉네임</span><input id="manualNickname" maxlength="24" placeholder="닉네임" type="text"/></label><label><span>뽑기 횟수</span><input id="manualDraws" max="999" min="1" type="number" value="1"/></label><label><span>메모</span><input id="manualMemo" maxlength="40" placeholder="선택 사항" type="text"/></label></div><button class="btn primary wide" id="manualQueueAddBtn">대기열에 추가</button></div></div>
 <div class="modal-backdrop hidden" id="settingsModal">
 <div class="modal settings-modal">
