@@ -2524,3 +2524,43 @@ body:not(.broadcast-mode) .batch-result-modal{
     font-size:14px!important;
   }
 }
+
+/* =========================================================
+ * V6.1 송출 화면 배치 변경
+ * 상단: 당첨 목록 / 하단: 뽑기판
+ * 운영 화면은 기존 배치 유지
+ * ======================================================= */
+body.broadcast-mode .board-area,
+body.broadcast-mode.broadcast-mini .board-area{
+  grid-template-rows:auto minmax(0,1fr)!important;
+  align-content:stretch!important;
+}
+
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  order:1!important;
+  align-self:start!important;
+  margin:0 0 3px!important;
+}
+
+body.broadcast-mode .draw-board,
+body.broadcast-mode.broadcast-mini .draw-board{
+  order:2!important;
+  min-height:0!important;
+  align-self:stretch!important;
+}
+
+/* 상단 목록과 뽑기판 사이 경계감을 살짝 추가 */
+body.broadcast-mode #broadcastPrizeStrip,
+body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+  padding-bottom:3px!important;
+  border-bottom:1px solid rgba(189,210,239,.75)!important;
+}
+
+@media (max-width:340px), (max-height:430px){
+  body.broadcast-mode #broadcastPrizeStrip,
+  body.broadcast-mode.broadcast-mini #broadcastPrizeStrip{
+    margin-bottom:1px!important;
+    padding-bottom:1px!important;
+  }
+}
