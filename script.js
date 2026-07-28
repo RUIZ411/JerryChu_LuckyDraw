@@ -495,6 +495,18 @@ function cleanSharedSettings(){
   delete clean.integration;
   return clean;
 }
+// Firebase Realtime Database는 undefined 값을 저장할 수 없습니다.
+// 객체 속성의 undefined는 제거하고, 배열 안의 undefined는 null로 변환합니다.
+function firebaseSafeValue(value){
+  if(value===undefined)return null;
+  if(value===null||typeof value!=="object")return value;
+  if(Array.isArray(value))return value.map(item=>firebaseSafeValue(item));
+  const clean={};
+  Object.entries(value).forEach(([key,item])=>{
+    if(item!==undefined)clean[key]=firebaseSafeValue(item);
+  });
+  return clean;
+}
 function privateSharedPayload(revision){
   return {version:2,settings:cleanSharedSettings(),board:state.board,history:state.history.slice(-1000),lastResult:state.lastResult||null,revision,updatedBy:firebaseUser?.uid||""};
 }
@@ -577,7 +589,8 @@ async function writeFirebaseState(force=false){
     setFirebaseStatus("저장 중","syncing","Firebase에 최신 뽑기판 상태를 전송하고 있습니다.");
     const revision=`${Date.now()}-${crypto.randomUUID()}`;
     const {ref,update,serverTimestamp}=firebaseModules.db;
-    const privateData=privateSharedPayload(revision),publicData=publicSharedPayload(revision);
+    const privateData=firebaseSafeValue(privateSharedPayload(revision));
+    const publicData=firebaseSafeValue(publicSharedPayload(revision));
     privateData.updatedAt=serverTimestamp();publicData.updatedAt=serverTimestamp();
     // 방 경로에서 public/private를 한 번에 갱신합니다. 각 하위 경로의 규칙이 함께 검사됩니다.
     await update(ref(firebaseDb,`rooms/${FIREBASE_ROOM_ID}`),{private:privateData,public:publicData});
