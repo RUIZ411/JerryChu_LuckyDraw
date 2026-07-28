@@ -2375,3 +2375,117 @@ body.broadcast-mode .batch-result-item{padding:9px 7px}
   body.broadcast-mode .batch-result-item strong{font-size:11px;margin-top:1px}
   body.broadcast-mode .batch-result-item small{font-size:8px;margin-top:2px}
 }
+
+/* =========================================================
+ * V5.9 추첨 완료 / 미추첨 타일 구분 강화
+ * ======================================================= */
+
+/* 미추첨 타일: 밝고 선명한 흰색 + 파란 점선 */
+body.broadcast-mode .draw-tile:not(.opened),
+body.broadcast-mode.broadcast-mini .draw-tile:not(.opened){
+  background:linear-gradient(145deg,#ffffff 0%,#f1f7ff 100%)!important;
+  border:1px solid rgba(177,207,249,.82)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.95),0 2px 6px rgba(76,116,177,.10)!important;
+  opacity:1!important;
+}
+body.broadcast-mode .draw-tile:not(.opened)::before,
+body.broadcast-mode.broadcast-mini .draw-tile:not(.opened)::before{
+  border:1px dashed rgba(71,139,255,.50)!important;
+}
+body.broadcast-mode .draw-tile:not(.opened) .tile-number,
+body.broadcast-mode.broadcast-mini .draw-tile:not(.opened) .tile-number{
+  color:#425979!important;
+  font-weight:800!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.95)!important;
+}
+
+/* 추첨 완료 공통: 살짝 작아지고 실선 테두리 + 완료 체크 */
+body.broadcast-mode .draw-tile.opened,
+body.broadcast-mode.broadcast-mini .draw-tile.opened{
+  transform:scale(.92)!important;
+  border:2px solid rgba(255,255,255,.92)!important;
+  box-shadow:inset 0 0 0 1px rgba(42,64,102,.16),0 2px 5px rgba(47,69,106,.18)!important;
+  animation:none!important;
+}
+body.broadcast-mode .draw-tile.opened::before,
+body.broadcast-mode.broadcast-mini .draw-tile.opened::before{
+  border-style:solid!important;
+  border-color:rgba(255,255,255,.42)!important;
+}
+body.broadcast-mode .draw-tile.opened::after,
+body.broadcast-mode.broadcast-mini .draw-tile.opened::after{
+  content:"✓"!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  position:absolute!important;
+  top:2px!important;
+  right:2px!important;
+  width:13px!important;
+  height:13px!important;
+  border-radius:999px!important;
+  transform:none!important;
+  background:rgba(255,255,255,.94)!important;
+  color:var(--tile-color,#65748b)!important;
+  font-family:"SUITE",sans-serif!important;
+  font-size:9px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  box-shadow:0 1px 4px rgba(35,51,84,.22)!important;
+  z-index:4!important;
+}
+body.broadcast-mode .draw-tile.opened .tile-number,
+body.broadcast-mode.broadcast-mini .draw-tile.opened .tile-number{
+  font-weight:900!important;
+  text-shadow:0 1px 2px rgba(34,48,77,.30)!important;
+}
+
+/* 당첨 칸: 등수 색을 진하게 */
+body.broadcast-mode .draw-tile.opened:not(.lose),
+body.broadcast-mode.broadcast-mini .draw-tile.opened:not(.lose){
+  filter:saturate(1.18) contrast(1.05)!important;
+}
+
+/* 꽝 칸: 회색 사선 패턴으로 확실하게 구분 */
+body.broadcast-mode .draw-tile.opened.lose,
+body.broadcast-mode.broadcast-mini .draw-tile.opened.lose{
+  --tile-color:#7f8da1!important;
+  color:#59677b!important;
+  background:
+    repeating-linear-gradient(135deg,rgba(126,142,166,.10) 0 5px,rgba(255,255,255,.16) 5px 10px),
+    linear-gradient(145deg,#dfe6ef,#cfd9e6)!important;
+  border-color:#bcc8d8!important;
+  filter:none!important;
+  opacity:.86!important;
+}
+body.broadcast-mode .draw-tile.opened.lose::before,
+body.broadcast-mode.broadcast-mini .draw-tile.opened.lose::before{
+  border-color:rgba(93,112,142,.30)!important;
+}
+body.broadcast-mode .draw-tile.opened.lose::after,
+body.broadcast-mode.broadcast-mini .draw-tile.opened.lose::after{
+  background:#718097!important;
+  color:#fff!important;
+}
+body.broadcast-mode .draw-tile.opened.lose .tile-number,
+body.broadcast-mode.broadcast-mini .draw-tile.opened.lose .tile-number{
+  color:#526176!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.72)!important;
+}
+
+/* 아주 작은 OBS 창에서는 체크 배지만 조금 축소 */
+@media (max-width:340px), (max-height:430px){
+  body.broadcast-mode .draw-tile.opened,
+  body.broadcast-mode.broadcast-mini .draw-tile.opened{
+    transform:scale(.91)!important;
+    border-width:1px!important;
+  }
+  body.broadcast-mode .draw-tile.opened::after,
+  body.broadcast-mode.broadcast-mini .draw-tile.opened::after{
+    top:1px!important;
+    right:1px!important;
+    width:10px!important;
+    height:10px!important;
+    font-size:7px!important;
+  }
+}
