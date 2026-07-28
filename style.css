@@ -2583,3 +2583,10 @@ body.viewer-mode .draw-tile{cursor:default!important}
 body.firebase-locked .random-draw-actions,body.firebase-locked #previewBtn,body.firebase-locked #resetProgressBtn{opacity:.45}
 body.firebase-locked .participant-field::after{content:"관리자 로그인 후 조작 가능";display:block;color:#e26b7d;font-size:11px;font-weight:800;margin-top:5px}
 @media(max-width:760px){.firebase-info-grid{grid-template-columns:1fr}.firebase-compact{min-width:0}.firebase-link-actions .btn{width:100%}}
+
+
+/* V6.3 Firebase 오류 상세 표시 */
+.firebase-compact>div{min-width:0}
+.firebase-status-detail{display:block;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px!important;color:#7d8ca8!important}
+.firebase-compact:has(.status-dot.error) .firebase-status-detail{color:#e15b6c!important}
+@media(max-width:1100px){.firebase-status-detail{max-width:170px}}

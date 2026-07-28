@@ -505,7 +505,8 @@ function publicSharedPayload(revision){
 function setFirebaseStatus(text,mode="syncing",detail=""){
   const ids=[["#firebaseStatusText","#firebaseStatusDot"],["#firebaseSettingsStatus","#firebaseSettingsDot"]];
   ids.forEach(([textSel,dotSel])=>{const t=$(textSel),d=$(dotSel);if(t)t.textContent=text;if(d){d.className=`status-dot ${mode}`}});
-  const detailEl=$("#firebaseSettingsDetail");if(detailEl&&detail)detailEl.textContent=detail;
+  const detailEl=$("#firebaseSettingsDetail");if(detailEl)detailEl.textContent=detail||text;
+  const compactDetail=$("#firebaseStatusDetail");if(compactDetail)compactDetail.textContent=detail||text;
   const conn=$("#broadcastConnectionText");if(conn&&IS_BROADCAST_VIEW){conn.textContent=text;conn.className=mode==="ok"?"ok":mode==="error"?"error":""}
 }
 function updateFirebaseUi(){
@@ -578,11 +579,21 @@ async function writeFirebaseState(force=false){
     const {ref,update,serverTimestamp}=firebaseModules.db;
     const privateData=privateSharedPayload(revision),publicData=publicSharedPayload(revision);
     privateData.updatedAt=serverTimestamp();publicData.updatedAt=serverTimestamp();
-    await update(ref(firebaseDb),{[firebasePath("private")]:privateData,[firebasePath("public")]:publicData});
+    // 방 경로에서 public/private를 한 번에 갱신합니다. 각 하위 경로의 규칙이 함께 검사됩니다.
+    await update(ref(firebaseDb,`rooms/${FIREBASE_ROOM_ID}`),{private:privateData,public:publicData});
     firebaseLocalAdminBackup=normalizeState(JSON.parse(JSON.stringify(state)));
     setFirebaseStatus("관리자 실시간 연결","ok",`방 ${FIREBASE_ROOM_ID}에 저장되었습니다.`);
     return true;
-  }catch(e){console.error(e);setFirebaseStatus("Firebase 저장 실패","error",e.message||String(e));return false}
+  }catch(e){
+    console.error(e);
+    const code=String(e?.code||"");
+    const raw=e?.message||String(e);
+    const detail=code.includes("permission-denied")||/permission_denied|permission denied/i.test(raw)
+      ? "Realtime Database 규칙이 쓰기를 막고 있습니다. V6.3 database.rules.json 규칙을 Firebase 콘솔에 게시해 주세요."
+      : `${code?code+": ":""}${raw}`;
+    setFirebaseStatus("Firebase 저장 실패","error",detail);
+    return false
+  }
   finally{firebaseWriting=false;if(firebaseWriteQueued){firebaseWriteQueued=false;scheduleFirebaseWrite(true)}}
 }
 function saveState(){
@@ -628,8 +639,32 @@ async function firebaseLogin(){
 }
 async function firebaseLogout(){try{await firebaseModules.auth.signOut(firebaseAuth);const r=$("#firebaseActionResult");if(r)r.textContent="로그아웃했습니다."}catch(e){alert(e.message)}}
 async function testConnection(){
-  const result=$("#firebaseActionResult");if(!firebaseReady){if(result)result.textContent="Firebase 설정이 완료되지 않았습니다.";return false}
-  try{if(result)result.textContent="연결 확인 중...";const snap=await firebaseModules.db.get(firebaseModules.db.ref(firebaseDb,firebasePath("public")));if(result)result.textContent=snap.exists()?"Firebase 실시간 공유 연결 정상":"연결 정상 · 아직 생성되지 않은 방입니다.";return true}catch(e){if(result)result.textContent=`연결 실패: ${e.message}`;return false}
+  const result=$("#firebaseActionResult");
+  if(!firebaseReady){if(result)result.textContent="Firebase 설정이 완료되지 않았습니다.";return false}
+  try{
+    if(result)result.textContent="읽기 연결 확인 중...";
+    const publicRef=firebaseModules.db.ref(firebaseDb,firebasePath("public"));
+    const snap=await firebaseModules.db.get(publicRef);
+    if(firebaseUser&&!IS_READONLY_SHARED_VIEW){
+      if(result)result.textContent="쓰기 권한 확인 중...";
+      const testRef=firebaseModules.db.ref(firebaseDb,`${firebasePath("private")}/_connectionTest`);
+      await firebaseModules.db.set(testRef,{uid:firebaseUser.uid,at:firebaseModules.db.serverTimestamp()});
+      await firebaseModules.db.remove(testRef);
+      if(result)result.textContent=snap.exists()?"Firebase 읽기·쓰기 연결 정상":"읽기·쓰기 정상 · 현재 방을 처음 저장할 수 있습니다.";
+    }else if(result){
+      result.textContent=snap.exists()?"Firebase 공개 조회 연결 정상":"공개 조회 연결 정상 · 아직 저장된 방이 없습니다.";
+    }
+    return true
+  }catch(e){
+    const code=String(e?.code||"");
+    const raw=e?.message||String(e);
+    const msg=code.includes("permission-denied")||/permission_denied|permission denied/i.test(raw)
+      ? "연결 실패: Realtime Database 규칙의 쓰기 권한을 확인해 주세요."
+      : `연결 실패: ${code?code+" · ":""}${raw}`;
+    if(result)result.textContent=msg;
+    setFirebaseStatus("Firebase 권한 오류","error",msg);
+    return false
+  }
 }
 function initializeBroadcastView(){document.body.classList.add("broadcast-mode");if(BROADCAST_LAYOUT==="mini")document.body.classList.add("broadcast-mini");document.title=`제리츄 뽑기판 · ${BROADCAST_LAYOUT==="mini"?"미니 ":""}송출 화면`;$("#broadcastTopbar")?.classList.remove("hidden");renderAll();updateFirebaseUi()}
 async function initializeFirebaseSharedApp(){
