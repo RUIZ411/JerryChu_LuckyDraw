@@ -2167,3 +2167,110 @@ body.broadcast-mode.broadcast-mini .broadcast-prize-chip{
     padding-top:4px!important;
   }
 }
+
+
+/* =========================================================
+ * V5.7 랜덤 추첨 / 팝업 간소화 / SOOP UI 제거
+ * ======================================================= */
+.legacy-soop-ui,
+.legacy-integration-hidden{
+  display:none!important;
+}
+
+.control-row{
+  grid-template-columns:minmax(240px,420px) minmax(0,1fr)!important;
+}
+.control-actions{
+  justify-content:flex-end!important;
+}
+
+.board-topline{
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:12px!important;
+}
+.random-draw-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:5px;
+  margin-left:auto;
+}
+.random-draw-actions{
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.random-draw-btn{
+  min-height:40px;
+  padding:9px 14px;
+  border:1px solid #dbe7f8;
+  border-radius:13px;
+  background:linear-gradient(180deg,#fff,#f2f7ff);
+  color:#4e6385;
+  box-shadow:0 5px 14px rgba(88,116,163,.10);
+  font-weight:800;
+}
+.random-draw-btn:hover:not(:disabled){
+  transform:translateY(-2px);
+  border-color:#a9c9ff;
+  box-shadow:0 8px 17px rgba(76,124,203,.16);
+}
+.random-draw-btn.random-five{background:linear-gradient(180deg,#fff,#f7f3ff)}
+.random-draw-btn.random-eleven{background:linear-gradient(180deg,#fff,#fff4fa)}
+.random-draw-btn:disabled{opacity:.45;cursor:not-allowed}
+.random-draw-status{
+  min-height:18px;
+  color:#5d78a2;
+  font-size:13px;
+  font-weight:800;
+  opacity:0;
+  transform:translateY(-2px);
+  transition:.18s ease;
+}
+.random-draw-status.show{opacity:1;transform:none}
+.board-topline .progress-bar-wrap{
+  flex:1 1 180px;
+  max-width:250px;
+}
+
+/* 클릭 확인 팝업은 사용하지 않음 */
+#confirmModal{display:none!important}
+
+/* 결과 팝업은 짧게 보이므로 조금 더 컴팩트하게 */
+body:not(.broadcast-mode) #resultModal .result-modal{
+  width:min(390px,calc(100vw - 28px));
+  padding:22px 24px 20px;
+}
+body:not(.broadcast-mode) #resultModal .result-character-wrap{
+  width:72px;
+  height:72px;
+}
+body:not(.broadcast-mode) #resultModal .result-emoji{font-size:31px}
+body:not(.broadcast-mode) #resultModal .result-modal h2{font-size:24px;margin:5px 0}
+body:not(.broadcast-mode) #resultModal .result-modal p{margin:5px 0 8px}
+body:not(.broadcast-mode) #resultModal .result-modal>.btn,
+body:not(.broadcast-mode) #resultModal .modal-close{display:none!important}
+
+.broadcast-link-settings{
+  border:1px solid #dbe7f8;
+  border-radius:18px;
+  background:linear-gradient(180deg,#fbfdff,#f5f9ff);
+}
+
+/* SUITE 한글 상품명 머리 부분 여유 */
+body.broadcast-mode .broadcast-prize-chip .chip-prize,
+body.broadcast-mode.broadcast-mini .broadcast-prize-chip .chip-prize{
+  line-height:1.18!important;
+  padding-top:1px!important;
+  padding-bottom:1px!important;
+}
+
+@media (max-width:900px){
+  .control-row{grid-template-columns:1fr!important}
+  .control-actions{justify-content:flex-start!important}
+  .random-draw-wrap{width:100%;align-items:flex-start;margin-left:0}
+  .random-draw-actions{justify-content:flex-start}
+  .board-topline .progress-bar-wrap{width:100%;max-width:none}
+}
